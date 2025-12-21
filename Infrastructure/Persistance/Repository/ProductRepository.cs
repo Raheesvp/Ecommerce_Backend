@@ -1,0 +1,76 @@
+﻿using Application.Contracts.Repositories;
+using Domain.Entities;
+using Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
+
+namespace Infrastructure.Persistence.Repository
+{
+    public class ProductRepository : IProductRepository
+    {
+        private readonly AppDbContext _context;
+
+        public ProductRepository(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<Product?> GetByIdAsync(int id) =>
+            await _context.Products.FirstOrDefaultAsync(p => p.Id == id);
+
+        public async Task<List<Product>> GetAllAsync() =>
+            await _context.Products
+                .AsNoTracking()
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
+
+        public async Task<List<Product>> GetByCategoryAsync(string category) =>
+            await _context.Products
+                .AsNoTracking()
+                .Where(p => p.Category == category)
+                .ToListAsync();
+
+        public async Task<List<Product>> SearchAsync(string query) =>
+            await _context.Products
+                .AsNoTracking()
+                .Where(p => p.Name.Contains(query) || p.Category.Contains(query))
+                .ToListAsync();
+
+        public async Task<List<Product>> GetPaginatedAsync(int pageNumber, int pageSize) =>
+            await _context.Products
+                .AsNoTracking()
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+        public async Task<int> CountAsync() =>
+            await _context.Products.CountAsync();
+
+        public async Task<bool> ExistByNameAsync(string name) =>
+            await _context.Products.AnyAsync(p => p.Name == name);
+
+        public async Task AddAsync(Product product)
+        {
+            _context.Products.Add(product);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateAsync(Product product)
+        {
+            _context.Products.Update(product);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteAsync(Product product)
+        {
+            _context.Products.Remove(product);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> ExistsAsync(int productId)
+        {
+            // The Query Filter automatically ignores deleted products
+            return await _context.Products.AnyAsync(p => p.Id == productId);
+        }
+    }
+}

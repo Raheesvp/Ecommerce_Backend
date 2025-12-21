@@ -1,0 +1,24 @@
+﻿using Application.DTOs.Product;
+
+namespace Application.Contracts.Services
+{
+    public interface IProductService
+    {
+        Task<List<ProductResponse>> GetAllAsync();
+        Task<ProductResponse> GetByIdAsync(int id);
+        Task<List<ProductResponse>> GetByCategoryAsync(string category);
+        Task<PagedResponse<ProductResponse>> GetPaginatedAsync(int pageNumber, int pageSize);
+        Task<List<ProductSearchResponse>> SearchAsync(string query);
+
+        Task CreateAsync(CreateProductRequest request);
+        Task UpdateAsync(int id, UpdateProductRequest request);
+        Task DeleteAsync(int id);
+
+
+
+
+
+        //Task<bool> ExistByNameAsync(string name);
+
+    }
+}
