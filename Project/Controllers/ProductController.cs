@@ -78,5 +78,11 @@ namespace Project.WebAPI.Controllers
             var result = await _productService.SearchAsync(query);
             return Ok(new ApiResponse<List<ProductSearchResponse>>(200, "Success", result));
         }
+        [HttpGet("featured")]
+        public async Task<IActionResult> GetFeatured()
+        {
+            var products = await _productService.GetFeaturedProductAsync();
+            return Ok(new ApiResponse<List<ProductResponse>>(200, "Featured Products Fetched", products));
+        }
     }
 }

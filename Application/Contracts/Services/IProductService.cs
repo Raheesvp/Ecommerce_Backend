@@ -14,6 +14,8 @@ namespace Application.Contracts.Services
         Task UpdateAsync(int id, UpdateProductRequest request);
         Task DeleteAsync(int id);
 
+        Task<List<ProductResponse>> GetFeaturedProductAsync();
+
 
 
 

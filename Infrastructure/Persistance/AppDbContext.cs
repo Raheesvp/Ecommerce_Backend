@@ -26,6 +26,10 @@ namespace Infrastructure.Persistence
 
         public DbSet<CartEntity> Carts { get; set; }
 
+        //create table for the Order 
+
+        public DbSet<Order> Orders { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

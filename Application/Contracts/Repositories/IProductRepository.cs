@@ -26,6 +26,8 @@ namespace Application.Contracts.Repositories
 
         Task<bool> ExistsAsync(int productId);
 
+        Task<List<Product>> GetFeaturedAsync();
+
 
     }
 }

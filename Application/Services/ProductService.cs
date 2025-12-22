@@ -3,7 +3,7 @@ using Application.Contracts.Services;
 using Application.DTOs.Product;
 using Domain.Entities;
 using Domain.Exceptions;
-using System.Linq; // Required for Select()
+using System.Linq;
 
 namespace Application.Services
 {
@@ -65,7 +65,8 @@ namespace Application.Services
             if (await _repository.ExistByNameAsync(request.Name))
                 throw new InvalidOperationException("Product already exists");
 
-            // 1. Upload Images to Cloud/Storage first
+            // --- CHANGE 1: Upload Images FIRST ---
+            // We need the URL to set the 'Main Image' in the constructor
             var imageUrls = new List<string>();
             if (request.Images != null && request.Images.Any())
             {
@@ -76,7 +77,10 @@ namespace Application.Services
                 }
             }
 
-            // 2. Create Product (Without Images in constructor)
+            // Determine Main Image (First uploaded image, or empty)
+            string mainImageUrl = imageUrls.FirstOrDefault() ?? string.Empty;
+
+            // --- CHANGE 2: Pass Main Image to Constructor ---
             var product = new Product(
                 request.Name,
                 request.Price,
@@ -86,9 +90,11 @@ namespace Application.Services
                 request.Description,
                 request.Offer,
                 request.Rating,
-                request.Featured);
+                request.Featured,
+                mainImageUrl // <--- NEW PARAMETER
+            );
 
-            // 3. Add Images Manually using the Helper Method
+            // Add all images to the gallery collection
             foreach (var url in imageUrls)
             {
                 product.AddImage(url);
@@ -102,24 +108,26 @@ namespace Application.Services
             var product = await _repository.GetByIdAsync(id)
                 ?? throw new NotFoundException("Product not found");
 
-            // 1. Update Standard Fields
-            // Note: I removed imageUrls from here because 'Update' doesn't handle them anymore
+            // --- CHANGE 3: Update Call ---
+            // We pass 'null' for imageUrl here because we aren't changing the main image explicitly via text
+            // The AddImage logic below will handle it if the product was empty.
             product.Update(
                 request.Name,
                 request.Price,
                 request.Stock,
                 request.Category,
                 request.Description,
+                null, // <--- NEW PARAMETER (imageUrl: null)
                 request.Offer,
                 request.Featured);
 
-            // 2. Add New Images (if any are uploaded)
+            // Add New Images (if any are uploaded)
             if (request.Images != null && request.Images.Any())
             {
                 foreach (var file in request.Images)
                 {
                     var url = await _fileService.UploadAsync(file);
-                    // Append the new image to the existing collection
+                    // This adds to gallery AND sets Main Image if it was empty
                     product.AddImage(url);
                 }
             }
@@ -135,7 +143,6 @@ namespace Application.Services
             await _repository.DeleteAsync(product);
         }
 
-        // --- MAPPING FIX ---
         private static ProductResponse Map(Product p) => new()
         {
             Id = p.Id,
@@ -145,9 +152,17 @@ namespace Application.Services
             Category = p.Category,
             Stock = p.Stock,
 
-            // Fix: p.Images is a List<ProductImage>, but DTO needs List<string>
-            // We use .Select(i => i.Url) to extract just the URL string
-            Images = p.Images?.Select(i => i.Url).ToList() ?? new List<string>()
+            // Map the gallery images
+            Images = p.Images?.Select(i => i.Url).ToList() ?? new List<string>(),
+
+            // Note: You might want to add 'MainImage' to ProductResponse later if you need it here too
+            // MainImage = p.ImageUrl 
         };
+
+        public async Task<List<ProductResponse>> GetFeaturedProductAsync()
+        {
+            var products = await _repository.GetFeaturedAsync();
+            return products.Select(Map).ToList();
+        }
     }
 }

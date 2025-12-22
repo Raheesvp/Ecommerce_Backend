@@ -16,29 +16,29 @@ namespace Infrastructure.Persistence.Repository
         }
 
         public async Task<Product?> GetByIdAsync(int id) =>
-            await _context.Products.FirstOrDefaultAsync(p => p.Id == id);
+            await _context.Products.Include(p=>p.Images).FirstOrDefaultAsync(p => p.Id == id);
 
         public async Task<List<Product>> GetAllAsync() =>
             await _context.Products
-                .AsNoTracking()
+                .AsNoTracking().Include(p=>p.Images)
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
 
         public async Task<List<Product>> GetByCategoryAsync(string category) =>
             await _context.Products
-                .AsNoTracking()
+                .AsNoTracking().Include(p=>p.Images)
                 .Where(p => p.Category == category)
                 .ToListAsync();
 
         public async Task<List<Product>> SearchAsync(string query) =>
             await _context.Products
-                .AsNoTracking()
+                .AsNoTracking().Include(p=>p.Images)
                 .Where(p => p.Name.Contains(query) || p.Category.Contains(query))
                 .ToListAsync();
 
         public async Task<List<Product>> GetPaginatedAsync(int pageNumber, int pageSize) =>
             await _context.Products
-                .AsNoTracking()
+                .AsNoTracking().Include(p=>p.Images)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -71,6 +71,11 @@ namespace Infrastructure.Persistence.Repository
         {
             // The Query Filter automatically ignores deleted products
             return await _context.Products.AnyAsync(p => p.Id == productId);
+        }
+
+        public async Task<List<Product>> GetFeaturedAsync()
+        {
+            return await _context.Products.Where(p => p.Featured).Include(p => p.Images).ToListAsync();
         }
     }
 }

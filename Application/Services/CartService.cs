@@ -50,9 +50,7 @@ namespace Application.Services
 
             if (existingItem != null)
             {
-                // Logic: If exists, increase quantity
-                existingItem.IncreaseQuantity(quantity);
-                await _cartRepository.UpdateItemAsync(existingItem);
+                throw new InvalidOperationException("Product is already in the Cart");
             }
             else
             {
