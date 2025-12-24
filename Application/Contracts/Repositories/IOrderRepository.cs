@@ -19,6 +19,12 @@ namespace Application.Contracts.Repositories
         //get the order by specific Id 
 
         Task<Order?> GetByIdAsync(int id);
+
+        //admin can view the orders of the user
+
+        Task UpdateAsync(Order order);
+
+        Task<List<Order>> GetAllAsync();
     }
 
 

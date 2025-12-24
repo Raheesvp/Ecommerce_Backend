@@ -110,7 +110,12 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IWishlistService, WishlistService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
-builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<IUserService, UserService>();
+//builder.Services.AddScoped<IFileService, FileService>();
+
+builder.Services.AddScoped<IFileService,Infrastructure.Services.CloudinaryService>();
+//// Program.cs
+//builder.Services.AddScoped<IFileService, Infrastructure.Services.FileService>();
 
 // ----------------------------------------------------
 // 6. Build App
@@ -127,7 +132,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+//app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();

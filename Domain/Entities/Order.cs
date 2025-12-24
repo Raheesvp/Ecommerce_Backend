@@ -9,7 +9,12 @@ namespace Domain.Entities
 {
     public  class Order :BaseEntity
     {
-        
+
+        public Order()
+        {
+            OrderItems = new List<OrderItem>();
+        }
+
         public int UserId { get; set; }
 
         public DateTime OrderDate { get; set; } = DateTime.UtcNow;
@@ -22,19 +27,30 @@ namespace Domain.Entities
 
         public string MobileNumber { get; set; } = string.Empty;
             
-
         public string PaymentMethod { get; set; } = "COD";
 
- 
+        public virtual User user { get; private  set; }
+
+    
+        public decimal TotalPrice { get; private set; }
+
+        public DateTime? ShippingDate { get; set; }
+
+
 
         public virtual ICollection<OrderItem> OrderItems { get; set; }
 
-        public Order()
+        public Order(int userId, string shippingAddress, string paymentMethod, string mobileNumber, decimal totalAmount)
         {
+            UserId = userId;
+            ShippingAddress = shippingAddress;
+            PaymentMethod = paymentMethod;
+            MobileNumber = mobileNumber;
+            OrderDate = DateTime.UtcNow;
+            Status = "Pending";
             OrderItems = new List<OrderItem>();
         }
- 
-       
+
 
     }
 }

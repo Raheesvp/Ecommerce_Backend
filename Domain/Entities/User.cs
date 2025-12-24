@@ -31,13 +31,17 @@ namespace Domain.Entities
             IsBlocked = false;
         }
 
-        public string FirstName { get; private set; }
+        public string FirstName { get;  set; }
 
-        public string LastName { get; private set; }
+        public string LastName { get;  set; }
 
         public string FullName => $"{FirstName}{LastName}";
         public string Email { get; private set; }
-        public string PasswordHash { get; private set; }
+        public string PasswordHash { get;  set; }
+
+        public string MobileNumber { get;  set; }
+
+        public string  ProfileImageUrl { get; set; }
         public Roles Role { get; private set; }
         public bool IsBlocked { get;  set; }
 

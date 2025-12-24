@@ -2,12 +2,14 @@
 using Application.Contracts.Services;
 using Application.DTOs.Order;
 using Domain.Entities;
+using Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.Intrinsics.X86;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Application.Services
@@ -79,18 +81,19 @@ namespace Application.Services
                 Status = o.Status,
                 ShippingAddress = o.ShippingAddress,
                 PaymentMethod = o.PaymentMethod,
-                Items = o.OrderItems.Select(i => new OrderItemDto
+                OrderItems = o.OrderItems.Select(i => new OrderItemDto
                 {
                     ProductId = i.ProductId,
                     ProductName = i.ProductName,
 
                     Quantity = i.Quantity,
                     Price = i.Price,
-                    ImageUrl = i.Product != null ? i.Product.ImageUrl : ""
+                    ImageUrl = i.Product?.Images?.FirstOrDefault()?.Url ?? ""
                 }).ToList()
             }).ToList();
 
             return response;
+            
         }
     
 
@@ -119,16 +122,76 @@ namespace Application.Services
                 Status = order.Status,
                 ShippingAddress = order.ShippingAddress, // Or ShippingAddress if you fixed the typo
                 PaymentMethod = order.PaymentMethod,
-                Items = order.OrderItems.Select(i => new OrderItemDto
+                OrderItems = order.OrderItems.Select(i => new OrderItemDto
                 {
                     ProductId = i.ProductId,
                     ProductName = i.Product != null ? i.Product.Name : "Product Not Found",
                     Price = i.Product != null ? i.Product.Price : 0,
                     Quantity = i.Quantity,
-                    ImageUrl = i.Product != null ? i.Product.ImageUrl : ""
+                    ImageUrl = i.Product?.Images?.FirstOrDefault()?.Url ?? ""
                 }).ToList()
+
             };
         }
+
+        //admin can view the orders 
+
+        public async Task<List<OrderResponse>> GetAllOrdersAsync()
+        {
+            var orders = await _orderRepository.GetAllAsync();
+
+            // Convert the List<Order> (Database Entity) to List<OrderResponse> (DTO)
+            return orders.Select(o => new OrderResponse
+            {
+                Id = o.Id,
+                OrderDate = o.OrderDate,
+                TotalAmount = o.TotalAmount,
+                Status = o.Status,
+                UserEmail = o.user != null ? o.user.Email : "Unknown",
+
+
+
+                //UserEmail = o.user.Email,
+
+                OrderItems = o.OrderItems.Select(oi => new OrderItemDto
+                {
+                    ProductId = oi.ProductId,
+                    ProductName = oi.Product.Name,
+                    Price = oi.Price,
+                    Quantity = oi.Quantity,
+                    ImageUrl = oi.Product?.Images?.FirstOrDefault()?.Url ?? ""
+                }).ToList()
+            }).ToList();
+        }
+
+        public async Task<bool> UpdateOrderStatusAsync(int orderId, OrderStatus newStatus)
+        {
+            // 1. Get order from Repository
+            var order = await _orderRepository.GetByIdAsync(orderId);
+
+            if (order == null)
+            {
+                // Option A: Return false
+                return false;
+                // Option B: Throw your custom NotFoundException
+                // throw new NotFoundException($"Order {orderId} not found");
+            }
+
+            // 2. Update logic
+            order.Status = newStatus.ToString();
+
+            if (newStatus == OrderStatus.Shipped)
+            {
+                order.ShippingDate = DateTime.UtcNow;
+            }
+
+            // 3. Update and Save
+            // Assuming your repository has an Update methodz`
+            await _orderRepository.UpdateAsync(order);
+
+            return true;
+        }
+
     }
 }
 

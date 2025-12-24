@@ -15,5 +15,7 @@ namespace Application.Contracts.Services
 
         // 2. Contract for Login
         Task<LoginResponse> LoginAsync(LoginRequest request);
+        // service interface for the refresh token 
+        Task<LoginResponse> RefreshTokenAsync(RefreshTokenRequest request);
     }
 }

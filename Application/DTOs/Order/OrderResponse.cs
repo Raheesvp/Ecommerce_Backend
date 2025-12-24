@@ -15,8 +15,10 @@ namespace Application.DTOs.Order
         public string ShippingAddress { get; set; } = string.Empty;
         public string PaymentMethod { get; set; } = string.Empty;
 
-      
-        public List<OrderItemDto> Items { get; set; } = new List<OrderItemDto>();
+        public string UserEmail { get; set; }
+
+
+        public List<OrderItemDto> OrderItems { get; set; } = new List<OrderItemDto>();
     }
 
     public class OrderItemDto

@@ -1,4 +1,5 @@
 ﻿using Application.Contracts.Services;
+using CloudinaryDotNet.Actions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using System;
@@ -54,19 +55,30 @@ namespace Infrastructure.Services
             return paths;
         }
 
-        public void Delete(string relativePath)
+        // Add this method to satisfy the Interface
+        // CORRECT Delete method for Local Storage (FileService.cs)
+        public void Delete(string fileUrl)
         {
-            if (string.IsNullOrWhiteSpace(relativePath))
-                return;
+            if (string.IsNullOrEmpty(fileUrl)) return;
 
-            var fullPath = Path.Combine(
-                _environment.WebRootPath,
-                relativePath.TrimStart('/')
-            );
+            try
+            {
+                // 1. Convert the URL (e.g., "/uploads/img.jpg") to a Windows Path
+                // We remove the starting '/' so Path.Combine works correctly
+                string filePath = Path.Combine(_environment.WebRootPath, fileUrl.TrimStart('/'));
 
-            if (File.Exists(fullPath))
-                File.Delete(fullPath);
+                // 2. Check if file exists on the Hard Drive and delete it
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error if needed, or ignore
+            }
         }
     }
-}
+    }
+
 

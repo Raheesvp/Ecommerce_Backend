@@ -7,7 +7,7 @@ using System.Security.Claims;
 
 namespace Project.WebAPI.Controllers
 {
-    [Authorize]
+    [Authorize(Roles ="User")]
     [ApiController]
     [Route("api/cart")]
     public class CartController : ControllerBase

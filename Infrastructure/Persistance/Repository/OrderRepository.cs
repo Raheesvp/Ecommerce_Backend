@@ -30,18 +30,37 @@ namespace Infrastructure.Persistance.Repository
         public async Task<List<Order>> GetUserOrdersAsync(int userId)
         {
             return await _context.Orders.Where(o => o.UserId == userId)
-                .Include(o => o.OrderItems).ThenInclude(oi=>oi.Product)
+                .Include(o => o.OrderItems).ThenInclude(oi=>oi.Product).ThenInclude(oi=>oi.Images).Where(o=>o.UserId ==userId)
                 
                 .OrderByDescending(o => o.OrderDate).ToListAsync();
         }
-
+        
         //get the order  by specific id 
 
         public async Task<Order?>  GetByIdAsync(int id)
         {
-            return await _context.Orders.Include(o => o.OrderItems).ThenInclude(oi => oi.Product).FirstOrDefaultAsync(i => i.Id == id);
+            return await _context.Orders.Include(o => o.user).Include(o=>o.OrderItems)
+                .ThenInclude(oi => oi.Product).ThenInclude(oi=>oi.Images).FirstOrDefaultAsync(i => i.Id == id);
         }
 
+        //get the orders from the user by admin 
+
+        public async Task<List<Order>> GetAllAsync()
+        {
+            return await _context.Orders
+        .Include(o => o.user).Include(o => o.OrderItems).ThenInclude(oi => oi.Product).ThenInclude(oi=>oi.Images)
+          
+                 
+        .OrderByDescending(o => o.OrderDate).ToListAsync();
+        }
+
+        //add the status to the order 
+
+        public async Task UpdateAsync(Order order)
+        {
+            _context.Orders.Update(order);
+            await _context.SaveChangesAsync();
+        }
 
     }
 }

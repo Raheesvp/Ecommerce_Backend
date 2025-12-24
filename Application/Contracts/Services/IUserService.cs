@@ -1,4 +1,6 @@
 ﻿using Application.DTOs.Admin;
+using Application.DTOs.Auth;
+using Application.DTOs.Profile;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,6 +17,17 @@ namespace Application.Contracts.Services
         Task<bool?> ToggleBlockStatusAsync(int id);
 
         Task<List<UserResponse>> GetDeletdUsersAsync();
+
+        Task<UserProfile> GetUserProfileAsync(int userId);
+
+        Task UpdateUserProfileImageAsync(int userId, string imageUrl);
+
+        Task UpdateUserProfileAsync(int userId, UpdateUserProfile request);
+
+        //Task<bool> ChangePasswordAsync(int userId, ChangePasswordDto request);
+
+
+
 
     }
 }

@@ -6,30 +6,32 @@ using System.Security.Claims;
 
 namespace Project.WebAPI.Controllers
 {
-        [Authorize(Roles ="User")]
-        [ApiController]
-        [Route("api/orders")]
-        public class OrderController : ControllerBase
+    [Authorize]
+    [ApiController]
+    [Route("api/orders")]
+    public class OrderController : ControllerBase
+    {
+        private readonly IOrderService _orderService;
+
+        public OrderController(IOrderService orderService)
         {
-            private readonly IOrderService _orderService;
+            _orderService = orderService;
+        }
 
-            public OrderController(IOrderService orderService)
-            {
-                _orderService = orderService;
-            }
+        [HttpPost]
+        [Authorize(Roles ="User")]
+        public async Task<IActionResult> PlaceOrder([FromBody] CreateOrderRequest request)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-            [HttpPost]
-            public async Task<IActionResult> PlaceOrder([FromBody] CreateOrderRequest request)
-            {
-                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            // Call the service
+            int orderId = await _orderService.PlaceOrderAsync(userId, request);
 
-                // Call the service
-                int orderId = await _orderService.PlaceOrderAsync(userId, request);
-
-                return Ok(new ApiResponse<int>(200, "Order placed successfully!", orderId));
-            }
+            return Ok(new ApiResponse<int>(200, "Order placed successfully!", orderId));
+        }
 
         [HttpGet("my-orders")]
+        [Authorize(Roles ="User")]
         public async Task<IActionResult> GetMyOrders()
         {
             // 1. Get the logged-in user's ID from the Token
@@ -43,6 +45,7 @@ namespace Project.WebAPI.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<IActionResult> GetOrderById(int id)
         {
             try
@@ -65,6 +68,39 @@ namespace Project.WebAPI.Controllers
                 return StatusCode(403, new { message = "You are not allowed to view this order." });
             }
         }
+        [HttpGet("all")] 
+        [Authorize(Roles = "Admin")] 
+        public async Task<IActionResult> GetAllOrders()
+        {
+            try
+            {
+                var orders = await _orderService.GetAllOrdersAsync();
+                return Ok(new ApiResponse<List<OrderResponse>>(200, "All orders retrieved", orders));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(500, ex.Message));
+            }
+        }
+
+        [HttpPut("{id}/status")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] UpdateStatusDTO request)
+        {
+            var result = await _orderService.UpdateOrderStatusAsync(id, request.Status);
+
+            if (!result)
+            {
+                return NotFound("Order not found");
+            }
+
+            return Ok(new ApiResponse<OrderResponse>(200, "Order status updated successfully!"));
+        }
+
+
     }
-    }
+
+
+}
+    
 

@@ -38,5 +38,25 @@ namespace Project.WebAPI.Controllers
             // Return success response with data
             return Ok(new ApiResponse<LoginResponse>(200, "Login Successful", result));
         }
+
+        [HttpPost("Refresh-Token")]
+
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+        {
+            try
+            {
+                var result = await _authService.RefreshTokenAsync(request);
+                return Ok(new ApiResponse<LoginResponse>(200, "Token Refreshed Successfully", result));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                // Return 401 if the refresh token is bad (Front end will force logout)
+                return Unauthorized(new ApiResponse<string>(401, ex.Message));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<string>(400, ex.Message));
+            }
+        }
     }
 }
