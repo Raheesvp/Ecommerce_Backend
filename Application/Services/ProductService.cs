@@ -3,6 +3,7 @@ using Application.Contracts.Services;
 using Application.DTOs.Product;
 using Domain.Entities;
 using Domain.Exceptions;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
 namespace Application.Services
@@ -62,11 +63,16 @@ namespace Application.Services
 
         public async Task CreateAsync(CreateProductRequest request)
         {
-            if (await _repository.ExistByNameAsync(request.Name))
+            var name = request.Name?.Trim();
+            var category = request.Category?.Trim();
+            var description = request.Description?.Trim();
+
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ValidationException("Product name is required");
+
+            if (await _repository.ExistByNameAsync(name))
                 throw new InvalidOperationException("Product already exists");
 
-            // --- CHANGE 1: Upload Images FIRST ---
-            // We need the URL to set the 'Main Image' in the constructor
             var imageUrls = new List<string>();
             if (request.Images != null && request.Images.Any())
             {
@@ -91,8 +97,14 @@ namespace Application.Services
                 request.Offer,
                 request.Rating,
                 request.Featured,
-                mainImageUrl // <--- NEW PARAMETER
+                mainImageUrl
             );
+
+            if (request.OriginalPrice <= request.Price)
+                throw new ValidationException(
+                    "OriginalPrice must be greater than Price"
+                );
+
 
             // Add all images to the gallery collection
             foreach (var url in imageUrls)
@@ -117,7 +129,7 @@ namespace Application.Services
                 request.Stock,
                 request.Category,
                 request.Description,
-                null, // <--- NEW PARAMETER (imageUrl: null)
+                null, 
                 request.Offer,
                 request.Featured);
 
@@ -131,6 +143,7 @@ namespace Application.Services
                     product.AddImage(url);
                 }
             }
+
 
             await _repository.UpdateAsync(product);
         }
@@ -151,12 +164,7 @@ namespace Application.Services
             Price = p.Price,
             Category = p.Category,
             Stock = p.Stock,
-
-            // Map the gallery images
             Images = p.Images?.Select(i => i.Url).ToList() ?? new List<string>(),
-
-            // Note: You might want to add 'MainImage' to ProductResponse later if you need it here too
-            // MainImage = p.ImageUrl 
         };
 
         public async Task<List<ProductResponse>> GetFeaturedProductAsync()

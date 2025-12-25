@@ -14,7 +14,7 @@ namespace Application.Services
     public class CartService : ICartService
     {
         private readonly ICartRepository _cartRepository;
-        private readonly IProductRepository _productRepository; // To validate product existence
+        private readonly IProductRepository _productRepository;
 
         public CartService(ICartRepository cartRepository, IProductRepository productRepository)
         {
@@ -34,32 +34,50 @@ namespace Application.Services
                 Quantity = c.Quantity,
                 TotalPrice = c.Product.Price * c.Quantity,
 
-                // FIX: Safely grab the first image URL
-                Image = c.Product.Images?.FirstOrDefault()?.Url
+                Image = c.Product.Images?.FirstOrDefault()?.Url,
+                Stock = c.Product.Stock
             }).ToList();
         }
 
         public async Task AddToCartAsync(int userId, int productId, int quantity)
         {
-            // 1. Validate Product Exists
-            if (!await _productRepository.ExistsAsync(productId))
-                throw new NotFoundException("Product not found");
+            // 1. Get Product & Validate
+            var product = await _productRepository.GetByIdAsync(productId);
 
-            // 2. Check if item is already in cart
+            if (product == null)
+                throw new NotFoundException("Product Not Found");
+
+          
+            if (product.Stock < quantity)
+            {
+                throw new InvalidOperationException($"Not Enough Stock. Only {product.Stock} left");
+            }
+
             var existingItem = await _cartRepository.GetCartItemAsync(userId, productId);
 
             if (existingItem != null)
             {
-                throw new InvalidOperationException("Product is already in the Cart");
+                
+
+
+                if (product.Stock < (existingItem.Quantity + quantity))
+                {
+                    throw new InvalidOperationException($"Cannot Add More. You have {existingItem.Quantity} in cart and we only have {product.Stock} in stock");
+                }
+
+                
+                existingItem.Quantity += quantity;
+                await _cartRepository.UpdateItemAsync(existingItem);
             }
             else
             {
-                // Logic: If new, create item
+                // --- SCENARIO B: New Item (Create) ---
+                // This runs only if the item is NOT in the cart yet
+
                 var newItem = new CartEntity(userId, productId, quantity);
                 await _cartRepository.AddItemAsync(newItem);
             }
         }
-
         public async Task UpdateQuantityAsync(int userId, UpdateCartItemRequest request)
         {
             var cartItem = await _cartRepository.GetCartItemAsync(userId, request.ProductId);
@@ -69,11 +87,19 @@ namespace Application.Services
 
             if (request.Quantity <= 0)
             {
-                // Remove if quantity is zero
+                
                 await _cartRepository.RemoveItemAsync(cartItem);
             }
             else
             {
+                
+                var product = await _productRepository.GetByIdAsync(request.ProductId);
+                if (product == null) throw new NotFoundException("Product Not Found");
+            
+                if (product.Stock < request.Quantity)
+                {
+                    throw new InvalidOperationException($"Cannot update. Only {product.Stock} items are in stock.");
+                }
                 cartItem.UpdateQuantity(request.Quantity);
                 await _cartRepository.UpdateItemAsync(cartItem);
             }

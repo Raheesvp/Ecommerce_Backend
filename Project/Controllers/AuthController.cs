@@ -10,10 +10,10 @@ namespace Project.WebAPI.Controllers
     [Route("api/Auth")]
     public class AuthController : ControllerBase
     {
-        // 1. Define the Interface (Abstraction)
+  
         private readonly IAuthService _authService;
 
-        // 2. Inject the Interface in the Constructor
+       
         public AuthController(IAuthService authService)
         {
             _authService = authService;
@@ -22,41 +22,27 @@ namespace Project.WebAPI.Controllers
         [HttpPost("Register")]
         public async Task<IActionResult> SignUp([FromBody] RegisterRequest request)
         {
-            // 3. Call the Service method
+           
             await _authService.RegisterAsync(request);
+            return StatusCode(
+                 StatusCodes.Status201Created,
+                  new ApiResponse<string>(201, "User registered successfully"));
 
-            // Return success response
-            return Ok(new ApiResponse<string>(200, "User registered successfully"));
         }
 
         [HttpPost("Login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            // 3. Call the Service method
+           
             var result = await _authService.LoginAsync(request);
-
-            // Return success response with data
             return Ok(new ApiResponse<LoginResponse>(200, "Login Successful", result));
         }
 
         [HttpPost("Refresh-Token")]
-
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
         {
-            try
-            {
-                var result = await _authService.RefreshTokenAsync(request);
-                return Ok(new ApiResponse<LoginResponse>(200, "Token Refreshed Successfully", result));
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                // Return 401 if the refresh token is bad (Front end will force logout)
-                return Unauthorized(new ApiResponse<string>(401, ex.Message));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new ApiResponse<string>(400, ex.Message));
-            }
+            var result = await _authService.RefreshTokenAsync(request);
+            return Ok(new ApiResponse<LoginResponse>(200, "Token Refreshed Successfully", result));
         }
     }
 }

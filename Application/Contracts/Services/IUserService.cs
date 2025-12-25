@@ -24,7 +24,6 @@ namespace Application.Contracts.Services
 
         Task UpdateUserProfileAsync(int userId, UpdateUserProfile request);
 
-        //Task<bool> ChangePasswordAsync(int userId, ChangePasswordDto request);
 
 
 

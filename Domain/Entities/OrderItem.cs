@@ -16,24 +16,18 @@ namespace Domain.Entities
 
         public string ProductName { get; private set; } = null!;
 
-
-      
-        public int Quantity { get; private set; }
-        public decimal Price { get;private set; }  // Snapshot of price
+        public int Quantity { get;  set; }
+        public decimal Price { get; set; } 
 
      
-
-        //public int Price { get; set; }
-
-        //[ForeignKey("OrderId")]
         public Order Order { get; set; } = null!;
 
         [ForeignKey("ProductId")]
         public Product Product { get; set; } = null!;
 
-        private OrderItem() { }
+        private  OrderItem() { }
 
-        // 2. The Missing Constructor (Fixes your error!)
+
         public OrderItem(Product product, int quantity)
         {
             ProductId = product.Id;

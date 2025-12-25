@@ -39,9 +39,9 @@ namespace Domain.Entities
         public string Email { get; private set; }
         public string PasswordHash { get;  set; }
 
-        public string MobileNumber { get;  set; }
+        public string? MobileNumber { get;  set; }
 
-        public string  ProfileImageUrl { get; set; }
+        public string?  ProfileImageUrl { get; set; }
         public Roles Role { get; private set; }
         public bool IsBlocked { get;  set; }
 

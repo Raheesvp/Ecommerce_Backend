@@ -14,5 +14,7 @@ namespace Application.DTOs.Cart
         public string? Image { get; set; }
         public int Quantity { get; set; }
         public decimal TotalPrice { get; set; }
+
+        public int Stock { get; set; }
     }
 }

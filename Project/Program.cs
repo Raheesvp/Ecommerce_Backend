@@ -1,6 +1,7 @@
 using Application.Contracts.Repositories;
 using Application.Contracts.Services;
 using Application.Services;
+using Infrastructure.Persistance;
 using Infrastructure.Persistance.Repository;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Repositories;
@@ -10,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Project.WebAPI;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -113,6 +115,8 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IUserService, UserService>();
 //builder.Services.AddScoped<IFileService, FileService>();
 
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
 builder.Services.AddScoped<IFileService,Infrastructure.Services.CloudinaryService>();
 //// Program.cs
 //builder.Services.AddScoped<IFileService, Infrastructure.Services.FileService>();
@@ -131,6 +135,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+
+
+app.UseMiddleware<Middlewares>();
 app.UseHttpsRedirection();
 //app.UseStaticFiles();
 

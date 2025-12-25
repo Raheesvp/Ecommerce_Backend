@@ -1,10 +1,12 @@
-﻿using System.Text.Json.Serialization;
+﻿using Microsoft.AspNetCore.Http;
+using System.Text.Json.Serialization;
 
 public class ApiResponse<T>
 {
     public int StatusCode { get; set; }
     public string? Message { get; set; }
 
+    public bool Success => StatusCode >= 200 && StatusCode < 300;
 
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -14,24 +16,18 @@ public class ApiResponse<T>
 
     public ApiResponse(int statusCode, string? message = null, T data = default)
     {
-        Data = data;
-        Message = message;
         StatusCode = statusCode;
+        Message = message;
+        Data = data;
     }
 
-    public static ApiResponse<T> Success(T data, string? message = null)
+    public static ApiResponse<T> SuccessResponse(T data,int statusCode = 200, string? message = null)
     {
-        return new ApiResponse<T>(200, message, data);
+        return new ApiResponse<T>(statusCode, message ?? "Success", data);
     }
 
-    // SUCCESS with no data
-    public static ApiResponse<T> Success(string? message = null)
-    {
-        return new ApiResponse<T>(200, message, default);
-    }
-
-    // FAIL helper
-    public static ApiResponse<T> Fail(string message, int statusCode = 400)
+ 
+    public static ApiResponse<T> FailureResponse(int statusCode, string message)
     {
         return new ApiResponse<T>(statusCode, message);
     }

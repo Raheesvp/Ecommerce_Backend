@@ -14,11 +14,11 @@ namespace Application.Services
 {
     public class AuthService : IAuthService
     {
-        // RULE 2: Depend on Abstractions (Interfaces), not concrete classes
+        
         private readonly IUserRepository _userRepository;
-        private readonly IJwtService _jwtService; // Ensure you have this interface too
+        private readonly IJwtService _jwtService; 
 
-        // Constructor Injection
+   
         public AuthService(IUserRepository userRepository, IJwtService jwtService)
         {
             _userRepository = userRepository;
@@ -27,17 +27,23 @@ namespace Application.Services
 
         public async Task<User> RegisterAsync(RegisterRequest request)
         {
-            // Business Logic
-            if (request.Email.Contains("example@gmail.com"))
-                throw new UnauthorizedAccessException("Demo accounts cannot register.");
+
+            if (request == null)
+                throw new ArgumentException("Request body is required");
+
+            if (string.IsNullOrWhiteSpace(request.Email))
+                throw new ArgumentException("Email is required");
+
+            if (string.IsNullOrWhiteSpace(request.Password))
+                throw new ArgumentException("Password is required");
 
             if (request.Password != request.ConfirmPassword)
-                throw new Exception("Passwords do not match.");
+                throw new ArgumentException("Passwords do not match");
 
             if (await _userRepository.EmailExistsAsync(request.Email))
-                throw new Exception("Email already registered.");
+                throw new ArgumentException("Email already registered");
 
-            string passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
             var user = new User(
                 firstName: request.FirstName,
@@ -47,26 +53,31 @@ namespace Application.Services
                 role: Roles.User
             );
 
+
             await _userRepository.AddAsync(user);
             return user;
         }
 
         public async Task<LoginResponse> LoginAsync(LoginRequest request)
+
         {
+
+            if (request == null)
+                throw new ArgumentException("Request body is required");
+
+            if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
+                throw new ArgumentException("Email and password are required");
+
             var user = await _userRepository.GetByEmailAsync(request.Email);
+            if (user == null || user.IsBlocked)
+                throw new UnauthorizedAccessException("Invalid credentials");
 
-            if (user == null)
-                throw new UnauthorizedAccessException("Invalid Credentials.");
-
-            if (user.IsBlocked)
-                throw new UnauthorizedAccessException("Account be Blocked ");
-
-            bool isCorrectPassword = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
+            var isCorrectPassword =
+                BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
 
             if (!isCorrectPassword)
-                throw new Exception("Invalid Credentials.");
+                throw new UnauthorizedAccessException("Invalid credentials");
 
-            // Generate Tokens
             string accessToken = _jwtService.GenerateAccessToken(user);
             string refreshToken = _jwtService.GenerateRefreshToken();
 
@@ -83,38 +94,55 @@ namespace Application.Services
 
         //service for the refresh token 
 
+
+
+
         public async Task<LoginResponse> RefreshTokenAsync(RefreshTokenRequest request)
         {
-            // 1. Get the User ID from the EXPIRED Access Token
-            var principal = _jwtService.GetPrincipalFromExpiredToken(request.AccessToken);
-            if (principal == null)
-                throw new Exception("Invalid access token");
 
-            // The "NameIdentifier" claim holds the ID we saved earlier
-            var userIdString = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(userIdString, out int userId))
-                throw new Exception("Invalid user ID in token");
+            if (request == null)
+                throw new ArgumentException("Request body is required");
 
-            // 2. Get the User from the Database
-            var user = await _userRepository.GetByIdAsync(userId); // Assuming you have GetByIdAsync
+            if (string.IsNullOrWhiteSpace(request.AccessToken))
+                throw new ArgumentException("Access token is required");
+
+            if (string.IsNullOrWhiteSpace(request.RefreshToken))
+                throw new ArgumentException("Refresh token is required");
+
+            ClaimsPrincipal principal;
+
+            try
+            {
+                principal = _jwtService.GetPrincipalFromExpiredToken(request.AccessToken);
+            }
+            catch
+            {
+                throw new UnauthorizedAccessException("Invalid access token");
+            }
+
+            var userIdClaim = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!int.TryParse(userIdClaim, out int userId))
+                throw new UnauthorizedAccessException("Invalid token claims");
+
+            var user = await _userRepository.GetByIdAsync(userId);
+
             if (user == null)
-                throw new Exception("User not found");
+                throw new UnauthorizedAccessException("User not found");
 
-            // 3. SECURITY CHECK: Does the Refresh Token match the DB? Is it expired?
-            if (user.RefreshToken != request.RefreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+            if (user.RefreshToken != request.RefreshToken ||
+                user.RefreshTokenExpiryTime <= DateTime.UtcNow)
             {
                 throw new UnauthorizedAccessException("Invalid or expired refresh token");
             }
 
-            // 4. Generate NEW Tokens
             var newAccessToken = _jwtService.GenerateAccessToken(user);
             var newRefreshToken = _jwtService.GenerateRefreshToken();
 
-            // 5. Save the NEW Refresh Token (Revoke the old one)
             user.SetRefreshToken(newRefreshToken, DateTime.UtcNow.AddDays(7));
             await _userRepository.UpdateAsync(user);
 
-            // 6. Return the new keys
+         
             return new LoginResponse
             {
                 AccessToken = newAccessToken,

@@ -55,7 +55,7 @@ namespace Project.WebAPI.Controllers
             return Ok(new ApiResponse<string>(201, "Product created successfully"));
         }
 
-        [HttpPatch("{id-Product-Update-Admin}")]
+        [HttpPatch("id-Product-Update-Admin")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id, [FromForm] UpdateProductRequest request)
         {
@@ -63,7 +63,7 @@ namespace Project.WebAPI.Controllers
             return Ok(new ApiResponse<string>(200, "Product updated successfully"));
         }
 
-        [HttpDelete("{id-Delete-Admin}")]
+        [HttpDelete("id-Delete-Admin")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
