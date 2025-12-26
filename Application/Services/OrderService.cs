@@ -17,7 +17,7 @@ namespace Application.Services
         private readonly IProductRepository _productRepository;
         private readonly IUnitOfWork _unitOfWork;
 
-        // 1. FIX: Added IUnitOfWork to the constructor
+      
         public OrderService(
             IOrderRepository orderRepository,
             ICartRepository cartRepository,
@@ -27,12 +27,12 @@ namespace Application.Services
             _orderRepository = orderRepository;
             _cartRepository = cartRepository;
             _productRepository = productRepository;
-            _unitOfWork = unitOfWork; // Now it won't be null!
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<int> PlaceOrderAsync(int userId, CreateOrderRequest request)
         {
-            // This transaction ensures if ANY step fails, everything is undone.
+     
 
             await _unitOfWork.BeginTransactionAsync();
 
@@ -53,18 +53,17 @@ namespace Application.Services
                     var product = await _productRepository.GetByIdAsync(cartItem.ProductId);
                     if (product == null) throw new Exception("Product Not Found");
 
-                    // Check Stock
+                
                     if (product.Stock < cartItem.Quantity)
                     {
                         throw new InvalidOperationException($"Product '{product.Name}' is out of stock.");
                     }
 
-                    // Reduce Stock
-                    product.Stock -= cartItem.Quantity;
+                    
+                    //product.Stock -= cartItem.Quantity;
                     await _productRepository.UpdateAsync(product);
 
-                    // 2. FIX: Create "Snapshot" instead of passing the full Product entity
-                    // This prevents the "500 Internal Server Error" / "Identity Insert" crash
+              
                     var orderItem = new OrderItem(product, cartItem.Quantity);
                  
 
@@ -106,7 +105,7 @@ namespace Application.Services
                 var order = await _orderRepository.GetByIdAsync(orderId);
                 if (order == null) return false;
 
-                // Restock if Cancelled
+              
                 if (newStatus == OrderStatus.Cancelled && order.Status != OrderStatus.Cancelled.ToString())
                 {
                     foreach (var item in order.OrderItems)
@@ -137,7 +136,6 @@ namespace Application.Services
             }
         }
 
-        // 3. FIX: Simplified methods using the helper below
         public async Task<List<OrderResponse>> GetUserOrdersAsync(int userId)
         {
             var orders = await _orderRepository.GetUserOrdersAsync(userId);
@@ -157,7 +155,7 @@ namespace Application.Services
             return orders.Select(MapToDto).ToList();
         }
 
-        // Helper Method to keep code clean (DRY Principle)
+   
         private static OrderResponse MapToDto(Order o)
         {
             return new OrderResponse
@@ -168,7 +166,7 @@ namespace Application.Services
                 Status = o.Status,
                 ShippingAddress = o.ShippingAddress,
                 PaymentMethod = o.PaymentMethod,
-                UserEmail = o.user?.Email, // Assuming 'user' navigation property exists
+                UserEmail = o.user?.Email,
                 OrderItems = o.OrderItems.Select(i => new OrderItemDto
                 {
                     ProductId = i.ProductId,
@@ -179,5 +177,51 @@ namespace Application.Services
                 }).ToList()
             };
         }
+
+        public async Task<bool> CancelOrderAsync(int orderId,int userId)
+        {
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                var order = await _orderRepository.GetByIdAsync(orderId);
+
+                if (order == null)
+                    throw new KeyNotFoundException("Order not found");
+
+              
+                if (order.UserId != userId)
+                    throw new UnauthorizedAccessException("You are not authorized to cancel this order.");
+
+               
+                if (order.Status == "Shipped" || order.Status == "Delivered" || order.Status == "Cancelled")
+                    throw new InvalidOperationException("This order cannot be cancelled.");
+
+   
+                foreach (var item in order.OrderItems)
+                {
+                    var product = await _productRepository.GetByIdAsync(item.ProductId);
+                    if (product != null)
+                    {
+                        product.Stock += item.Quantity; 
+                        await _productRepository.UpdateAsync(product);
+                    }
+                }
+
+            
+                order.Status = "Cancelled"; 
+
+                await _orderRepository.UpdateAsync(order);
+                await _unitOfWork.CommitTransactionAsync();
+
+                return true;
+            }
+            catch (Exception)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                throw;
+            }
+        }
+        }
+
+     
     }
-}

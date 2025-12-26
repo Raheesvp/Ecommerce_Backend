@@ -71,9 +71,7 @@ namespace Application.Services
             }
             else
             {
-                // --- SCENARIO B: New Item (Create) ---
-                // This runs only if the item is NOT in the cart yet
-
+             
                 var newItem = new CartEntity(userId, productId, quantity);
                 await _cartRepository.AddItemAsync(newItem);
             }

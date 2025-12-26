@@ -97,6 +97,16 @@ namespace Project.WebAPI.Controllers
             return Ok(new ApiResponse<OrderResponse>(200, "Order status updated successfully!"));
         }
 
+        [HttpPost("cancel/{orderId}")]
+        [Authorize(Roles ="User")]
+
+        public async Task<IActionResult> CancelOrder(int id)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            await _orderService.CancelOrderAsync(id, userId);
+            return Ok(new { Message = "Order cancelled Successfully" });
+        }
+
 
     }
 

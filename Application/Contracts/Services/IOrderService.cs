@@ -28,6 +28,8 @@ namespace Application.Contracts.Services
         Task<bool> UpdateOrderStatusAsync(int orderId, OrderStatus newStatus);
 
         //Task UpdateAsync(Order order);
+
+        Task<bool> CancelOrderAsync(int orderId, int userId);
     }
 
     

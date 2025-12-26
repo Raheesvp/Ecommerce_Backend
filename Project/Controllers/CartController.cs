@@ -1,9 +1,11 @@
 ﻿using Application.Contracts.Services;
+using Application.DTOs; 
 using Application.DTOs.Cart;
-using Application.DTOs; // For ApiResponse
+using Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+
 
 namespace Project.WebAPI.Controllers
 {
@@ -30,33 +32,43 @@ namespace Project.WebAPI.Controllers
         [HttpPost("add")]
         public async Task<IActionResult> AddToCart(int productId, int quantity = 1)
         {
+           
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
             await _cartService.AddToCartAsync(userId, productId, quantity);
-            return Ok(new ApiResponse<string>(200, "Item added to cart"));
+
+          
+            return Ok(ApiResponse<string>.SuccessResponse("Item added to cart", 200));
         }
 
         [HttpPut("update")]
         public async Task<IActionResult> UpdateItem([FromBody] UpdateCartItemRequest request)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
             await _cartService.UpdateQuantityAsync(userId, request);
-            return Ok(new ApiResponse<string>(200, "Cart updated successfully"));
+
+            return Ok(ApiResponse<string>.SuccessResponse("Cart updated successfully", 200));
         }
 
         [HttpDelete("remove/{productId:int}")]
         public async Task<IActionResult> RemoveItem(int productId)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
             await _cartService.RemoveFromCartAsync(userId, productId);
-            return Ok(new ApiResponse<string>(200, "Item removed from cart"));
+
+            return Ok(ApiResponse<string>.SuccessResponse("Item removed from cart", 200));
         }
 
         [HttpDelete("clear")]
         public async Task<IActionResult> ClearCart()
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
             await _cartService.ClearCartAsync(userId);
-            return Ok(new ApiResponse<string>(200, "Cart cleared successfully"));
+
+            return Ok(ApiResponse<string>.SuccessResponse("Cart cleared successfully", 200));
         }
     }
 }

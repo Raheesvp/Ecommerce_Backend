@@ -16,15 +16,11 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ----------------------------------------------------
-// 1. Controllers & API Explorer
-// ----------------------------------------------------
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// ----------------------------------------------------
-// 2. Swagger Configuration (ONLY ONCE)
-// ----------------------------------------------------
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.EnableAnnotations();
@@ -57,9 +53,7 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// ----------------------------------------------------
-// 3. JWT Authentication (SAFE CONFIG)
-// ----------------------------------------------------
+
 var jwtKey = builder.Configuration["Jwt:Key"];
 if (string.IsNullOrWhiteSpace(jwtKey))
     throw new Exception("JWT:Key is missing in configuration");
@@ -83,9 +77,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// ----------------------------------------------------
-// 4. Database Configuration
-// ----------------------------------------------------
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),
@@ -93,11 +85,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     )
 );
 
-// ----------------------------------------------------
-// 5. Dependency Injection (ONE interface ? ONE impl)
-// ----------------------------------------------------
-
 // Repositories
+builder.Services.AddScoped(typeof(IGenericeRepository<>), typeof(GenericeRepository<>));
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
@@ -113,22 +102,15 @@ builder.Services.AddScoped<IWishlistService, WishlistService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IUserService, UserService>();
-//builder.Services.AddScoped<IFileService, FileService>();
+
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddScoped<IFileService,Infrastructure.Services.CloudinaryService>();
-//// Program.cs
-//builder.Services.AddScoped<IFileService, Infrastructure.Services.FileService>();
 
-// ----------------------------------------------------
-// 6. Build App
-// ----------------------------------------------------
+
 var app = builder.Build();
 
-// ----------------------------------------------------
-// 7. HTTP Pipeline
-// ----------------------------------------------------
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -139,7 +121,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseMiddleware<Middlewares>();
 app.UseHttpsRedirection();
-//app.UseStaticFiles();
+
 
 app.UseAuthentication();
 app.UseAuthorization();
