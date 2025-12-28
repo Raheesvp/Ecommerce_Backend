@@ -1,6 +1,7 @@
 ﻿using Domain.Common;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,7 +24,15 @@ namespace Domain.Entities
 
         public string Status { get; set; } = "Pending";
 
+        public string ReceiverName { get; set; } = string.Empty;
+       
         public string ShippingAddress { get; set; } = string.Empty;
+     
+        public string City { get; set; } = string.Empty;
+
+        public string State { get; set; } = string.Empty;
+  
+        public string PinNumber { get; set; } = string.Empty;
 
         public string MobileNumber { get; set; } = string.Empty;
             
@@ -46,6 +55,7 @@ namespace Domain.Entities
             ShippingAddress = shippingAddress;
             PaymentMethod = paymentMethod;
             MobileNumber = mobileNumber;
+
             OrderDate = DateTime.UtcNow;
             Status = "Pending";
             OrderItems = new List<OrderItem>();

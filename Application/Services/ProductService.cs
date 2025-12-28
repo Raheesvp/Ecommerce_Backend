@@ -3,6 +3,7 @@ using Application.Contracts.Services;
 using Application.DTOs.Product;
 using Domain.Entities;
 using Domain.Exceptions;
+using Microsoft.AspNetCore.Components.Forms;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
@@ -12,17 +13,24 @@ namespace Application.Services
     {
         private readonly IProductRepository _repository;
         private readonly IFileService _fileService;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public ProductService(IProductRepository repository, IFileService fileService)
+
+        public ProductService(IProductRepository repository, IFileService fileService,IUnitOfWork unitOfWork)
         {
             _repository = repository;
             _fileService = fileService;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<List<ProductResponse>> GetAllAsync()
         {
             var products = await _repository.GetAllAsync();
-            return products.Select(Map).ToList();
+
+            return products
+         //.Where(p => p.IsActive == true) 
+         .Select(Map)
+         .ToList();
         }
 
         public async Task<ProductResponse> GetByIdAsync(int id)
@@ -41,11 +49,14 @@ namespace Application.Services
 
         public async Task<PagedResponse<ProductResponse>> GetPaginatedAsync(int pageNumber, int pageSize)
         {
-            var items = await _repository.GetPaginatedAsync(pageNumber, pageSize);
-            var total = await _repository.CountAsync();
+            var items = await _repository.GetActivePaginatedAsync(pageNumber, pageSize);
+            var total = await _repository.CountActiveAsync();
+
+            var response = items.Select(Map).ToList();
 
             return new PagedResponse<ProductResponse>(
-                items.Select(Map).ToList(),
+              
+                response,
                 pageNumber,
                 pageSize,
                 total);
@@ -57,7 +68,11 @@ namespace Application.Services
             return products.Select(p => new ProductSearchResponse
             {
                 Id = p.Id,
-                Name = p.Name
+                Name = p.Name,
+                Price = p.Price,
+                Category = p.Category,
+                Image = p.Images?.FirstOrDefault()?.Url
+
             }).ToList();
         }
 
@@ -86,6 +101,8 @@ namespace Application.Services
             // Determine Main Image (First uploaded image, or empty)
             string mainImageUrl = imageUrls.FirstOrDefault() ?? string.Empty;
 
+
+
             // --- CHANGE 2: Pass Main Image to Constructor ---
             var product = new Product(
                 request.Name,
@@ -113,6 +130,7 @@ namespace Application.Services
             }
 
             await _repository.AddAsync(product);
+            await _unitOfWork.CommitTransactionAsync();
         }
 
         public async Task UpdateAsync(int id, UpdateProductRequest request)
@@ -120,9 +138,12 @@ namespace Application.Services
             var product = await _repository.GetByIdAsync(id)
                 ?? throw new NotFoundException("Product not found");
 
-            // --- CHANGE 3: Update Call ---
-            // We pass 'null' for imageUrl here because we aren't changing the main image explicitly via text
-            // The AddImage logic below will handle it if the product was empty.
+            if (request.Name != product.Name && await _repository.ExistByNameAsync(request.Name))
+            {
+                throw new InvalidOperationException($"Product with name '{request.Name}' already exists.");
+            }
+
+
             product.Update(
                 request.Name,
                 request.Price,
@@ -146,6 +167,7 @@ namespace Application.Services
 
 
             await _repository.UpdateAsync(product);
+            await _unitOfWork.CommitTransactionAsync();
         }
 
         public async Task DeleteAsync(int id)
@@ -153,7 +175,10 @@ namespace Application.Services
             var product = await _repository.GetByIdAsync(id)
                 ?? throw new NotFoundException("Product not found");
 
-            await _repository.DeleteAsync(product);
+            product.IsActive = false; // Just hide it
+            await _repository.UpdateAsync(product);
+
+            await _unitOfWork.CommitTransactionAsync();
         }
 
         private static ProductResponse Map(Product p) => new()

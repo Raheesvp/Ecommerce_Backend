@@ -9,6 +9,7 @@ using Infrastructure.Persistence.Repository;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Project.WebAPI;
@@ -75,6 +76,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+
+
 builder.Services.AddAuthorization();
 
 
@@ -84,6 +87,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         sql => sql.MigrationsAssembly("Infrastructure")
     )
 );
+
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("AllowFrontend", policy =>
+//    {
+//        policy.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyHeader().AllowCredentials();
+//    });
+//});
 
 // Repositories
 builder.Services.AddScoped(typeof(IGenericeRepository<>), typeof(GenericeRepository<>));
@@ -125,6 +136,8 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+//app.UseCors("AllowFrontend");
 
 app.MapControllers();
 

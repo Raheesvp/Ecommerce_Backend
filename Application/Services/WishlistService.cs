@@ -58,6 +58,7 @@ namespace Application.Services
                 Id = p.Id,
                 Name = p.Name,
                 Price = p.Price,
+                Category = p.Category,
                 Images = p.Images?.Select(img => img.Url).ToList() ?? new List<string>()
                 // Add other product fields you need
             }).ToList();

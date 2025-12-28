@@ -29,8 +29,8 @@ namespace Infrastructure.Persistance.Repository
         //get the orders and write the implementatition of interface
         public async Task<List<Order>> GetUserOrdersAsync(int userId)
         {
-            return await _context.Orders.Where(o => o.UserId == userId)
-                .Include(o => o.OrderItems).ThenInclude(oi=>oi.Product).ThenInclude(oi=>oi.Images).Where(o=>o.UserId ==userId)
+            return await _context.Orders.AsNoTracking()
+                .Include(o => o.user).Include(oi=>oi.OrderItems).ThenInclude(oi=>oi.Product).ThenInclude(p=>p.Images).Where(o=>o.UserId ==userId)
                 
                 .OrderByDescending(o => o.OrderDate).ToListAsync();
         }
@@ -47,7 +47,7 @@ namespace Infrastructure.Persistance.Repository
 
         public async Task<List<Order>> GetAllAsync()
         {
-            return await _context.Orders
+            return await _context.Orders.AsNoTracking()
         .Include(o => o.user).Include(o => o.OrderItems).ThenInclude(oi => oi.Product).ThenInclude(oi=>oi.Images)
           
                  

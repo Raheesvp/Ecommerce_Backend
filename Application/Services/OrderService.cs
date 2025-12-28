@@ -59,8 +59,8 @@ namespace Application.Services
                         throw new InvalidOperationException($"Product '{product.Name}' is out of stock.");
                     }
 
-                    
-                    //product.Stock -= cartItem.Quantity;
+
+                    product.Stock -= cartItem.Quantity;
                     await _productRepository.UpdateAsync(product);
 
               
@@ -79,6 +79,9 @@ namespace Application.Services
                     TotalAmount = totalAmount,
                     ShippingAddress = request.ShippingAddress,
                     PaymentMethod = request.PaymentMethod,
+                    City = request.City,
+                    State = request.State,
+                    PinNumber = request.PinNumber,
                     MobileNumber = request.MobileNumber,
                     OrderItems = orderItems
                 };
@@ -164,7 +167,12 @@ namespace Application.Services
                 OrderDate = o.OrderDate,
                 TotalAmount = o.TotalAmount,
                 Status = o.Status,
+                ReceiverName = o.ReceiverName,
                 ShippingAddress = o.ShippingAddress,
+                City = o.City,
+                State = o.State,
+                PinNumber = o.PinNumber,
+                MobileNumber = o.MobileNumber,
                 PaymentMethod = o.PaymentMethod,
                 UserEmail = o.user?.Email,
                 OrderItems = o.OrderItems.Select(i => new OrderItemDto

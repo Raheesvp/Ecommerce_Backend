@@ -8,7 +8,7 @@ namespace Application.Contracts.Repositories
 {
     public  interface IGenericeRepository<T> where T:class
     {
-        Task<T> GetByIdAsync(int id);
+        Task<T?> GetByIdAsync(int id);
         Task<IReadOnlyList<T>> GetAllAsync();
         Task<T> AddAsync(T entity);
         Task UpdateAsync(T entity);

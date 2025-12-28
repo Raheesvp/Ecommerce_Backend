@@ -12,8 +12,18 @@ namespace Application.DTOs.Order
         public DateTime OrderDate { get; set; }
         public decimal TotalAmount { get; set; }
         public string Status { get; set; } = string.Empty;
+
+        public string ReceiverName { get; set; }
+
         public string ShippingAddress { get; set; } = string.Empty;
-        public string PaymentMethod { get; set; } = string.Empty;
+
+        public string City { get; set; }
+        public string State { get; set; }
+
+        public string PinNumber { get; set; }
+
+        public string MobileNumber { get; set; }
+        public string PaymentMethod { get; set; } ="COD";
 
         public string UserEmail { get; set; }
 

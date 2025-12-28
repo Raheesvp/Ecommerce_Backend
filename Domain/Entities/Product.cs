@@ -13,15 +13,16 @@ namespace Domain.Entities
         public string Category { get; private set; }
         public string Description { get; private set; }
 
-        // --- NEW: Main Image for Lists & Orders ---
+      
         public string ImageUrl { get; private set; } = string.Empty;
 
-        // Existing Gallery Logic (Keeps your multiple images feature)
         public virtual ICollection<ProductImage> Images { get; private set; }
 
         public string Offer { get; private set; }
         public int Rating { get; private set; }
         public bool Featured { get; private set; }
+
+        public bool IsActive { get; set; } = true;
 
         private Product() { } // Required for EF Core
 

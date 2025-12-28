@@ -12,7 +12,7 @@ namespace Application.Contracts.Repositories
         Task<IReadOnlyList<Product>> GetByCategoryAsync(string category);
         Task<IReadOnlyList<Product>> SearchAsync(string query);
 
-        Task<IReadOnlyList<Product>> GetPaginatedAsync(int pageNumber, int pageSize);
+        Task<IReadOnlyList<Product>> GetActivePaginatedAsync(int pageNumber, int pageSize);
 
         Task<bool> ExistByNameAsync(string name);
 
@@ -23,6 +23,8 @@ namespace Application.Contracts.Repositories
         //Task DeleteAsync(Product product);
 
         Task<int> CountAsync();
+
+        Task<int> CountActiveAsync(); // Add this method
 
         Task<bool> ExistsAsync(int productId);
 

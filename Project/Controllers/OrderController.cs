@@ -19,7 +19,7 @@ namespace Project.WebAPI.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles ="User")]
+        [Authorize(Roles = "User")]
         public async Task<IActionResult> PlaceOrder([FromBody] CreateOrderRequest request)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -31,7 +31,7 @@ namespace Project.WebAPI.Controllers
         }
 
         [HttpGet("my-orders")]
-        [Authorize(Roles ="User")]
+        [Authorize(Roles = "User")]
         public async Task<IActionResult> GetMyOrders()
         {
             // 1. Get the logged-in user's ID from the Token
@@ -68,8 +68,8 @@ namespace Project.WebAPI.Controllers
                 return StatusCode(403, new { message = "You are not allowed to view this order." });
             }
         }
-        [HttpGet("all")] 
-        [Authorize(Roles = "Admin")] 
+        [HttpGet("all")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAllOrders()
         {
             try
@@ -98,19 +98,15 @@ namespace Project.WebAPI.Controllers
         }
 
         [HttpPost("cancel/{orderId}")]
-        [Authorize(Roles ="User")]
+        [Authorize(Roles = "User")]
 
-        public async Task<IActionResult> CancelOrder(int id)
+        [Authorize]
+        public async Task<IActionResult> CancelOrder(int orderId)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-            await _orderService.CancelOrderAsync(id, userId);
-            return Ok(new { Message = "Order cancelled Successfully" });
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            await _orderService.CancelOrderAsync(orderId, userId);
+            return Ok(new ApiResponse<string>(200, "Order Cancelled Successfully"));
         }
-
-
     }
-
-
 }
-    
 
