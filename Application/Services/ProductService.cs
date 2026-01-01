@@ -5,6 +5,7 @@ using Domain.Entities;
 using Domain.Exceptions;
 using Microsoft.AspNetCore.Components.Forms;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using System.Linq;
 
 namespace Application.Services
@@ -180,12 +181,33 @@ namespace Application.Services
 
             await _unitOfWork.CommitTransactionAsync();
         }
+        
+
+        //getting the filtered products
+
+        public async Task<Object> GetProductsAsync(ProductFilterRequest productFilter)
+        {
+            var products = await _repository.GetFilteredAsync(productFilter);
+            var total = await _repository.GetTotalCountAsync(productFilter);
+
+            return new
+            {
+                TotalCount = total,
+                Items = products.Select(p => new ProductResponse
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Price = p.Price,
+                    Rating = p.Rating
+                })
+            };
+        }
 
         private static ProductResponse Map(Product p) => new()
         {
             Id = p.Id,
             Name = p.Name,
-            Description = p.Description,
+         
             Price = p.Price,
             Category = p.Category,
             Stock = p.Stock,
@@ -196,6 +218,37 @@ namespace Application.Services
         {
             var products = await _repository.GetFeaturedAsync();
             return products.Select(Map).ToList();
+        }
+
+        //filtered products
+
+        public async Task<PagedResponse<ProductResponse>> GetFilteredAsync(
+        ProductFilterRequest filter)
+        {
+            var products = await _repository.GetFilteredAsync(filter);
+            var total = await _repository.GetTotalCountAsync(filter);
+
+            return new PagedResponse<ProductResponse>
+            {
+                TotalCount = total,
+                PageNumber = filter.Page,
+                PageSize = filter.PageSize,
+                TotalPages = filter.PageSize == 0
+        ? 0
+        : (int)Math.Ceiling(total / (double)filter.PageSize),
+                Items = products.Select(p => new ProductResponse
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Price = p.Price,
+                    Rating = p.Rating,
+                    Stock = p.Stock,
+                    Category = p.Category,
+                     Images = p.Images.Any()
+            ? p.Images.Select(img => img.Url).ToList()
+            : new List<string> { p.ImageUrl }
+                }).ToList()
+            };
         }
     }
 }

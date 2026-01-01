@@ -13,6 +13,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Project.WebAPI;
+using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -72,7 +73,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(jwtKey)
-            )
+            ),
+            RoleClaimType = ClaimTypes.Role
         };
     });
 
@@ -88,13 +90,15 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     )
 );
 
-//builder.Services.AddCors(options =>
-//{
-//    options.AddPolicy("AllowFrontend", policy =>
-//    {
-//        policy.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyHeader().AllowCredentials();
-//    });
-//});
+//connect with frontend 
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+    });
+});
 
 // Repositories
 builder.Services.AddScoped(typeof(IGenericeRepository<>), typeof(GenericeRepository<>));
@@ -112,7 +116,7 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IWishlistService, WishlistService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
-builder.Services.AddScoped<IUserService, UserService>();
+
 
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -133,11 +137,11 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<Middlewares>();
 app.UseHttpsRedirection();
 
+app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-//app.UseCors("AllowFrontend");
 
 app.MapControllers();
 

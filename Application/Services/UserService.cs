@@ -127,7 +127,9 @@ namespace Application.Services
             {
                 //Id = user.Id,
                 Email = user.Email,
-                FullName = user.FullName,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                MobileNumber = user.MobileNumber,
                 ProfileImageUrl = string.IsNullOrEmpty(user.ProfileImageUrl)
             ? "https://your-default-image-url.com/avatar.png"
             : user.ProfileImageUrl

@@ -17,6 +17,11 @@ namespace Application.Contracts.Services
         Task<List<ProductResponse>> GetFeaturedProductAsync();
 
 
+        Task<PagedResponse<ProductResponse>> GetFilteredAsync(ProductFilterRequest productFilter);
+
+
+
+
 
 
 

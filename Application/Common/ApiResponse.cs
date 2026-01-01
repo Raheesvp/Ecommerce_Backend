@@ -10,6 +10,8 @@
         
         public bool Success => StatusCode >= 200 && StatusCode < 300;
 
+         
+
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public T? Data { get; set; }
 

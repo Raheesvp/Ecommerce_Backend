@@ -1,5 +1,6 @@
 ﻿    using Application.Contracts.Repositories;
-    using Domain.Entities;
+using Application.DTOs.Product;
+using Domain.Entities;
     using Infrastructure.Persistance.Repository;
     using Infrastructure.Persistence;
     using Microsoft.EntityFrameworkCore;
@@ -85,5 +86,43 @@
             return await _context.Products.CountAsync(p => p.IsActive == true);
         }
 
+        //filtering of the products
+
+        public async Task<List<Product>> GetFilteredAsync(ProductFilterRequest productFilter)
+        {
+            IQueryable<Product> query = _context.Products;
+
+            if (productFilter.Featured == true)
+                query = query.Where(p => p.Featured);
+
+            query = productFilter.SortBy switch
+            {
+                "price" => productFilter.Order == "desc"
+                ? query.OrderByDescending(p => p.Price)
+                : query.OrderBy(p => p.Price),
+
+                "rating" => productFilter.Order == "desc"
+                ? query.OrderByDescending(p => p.Rating)
+                : query.OrderBy(p => p.Rating),
+
+                "createdAt" => query.OrderByDescending(p=>p.CreatedAt),_=>query
+            };
+
+            return await query
+                .Skip((productFilter.Page - 1) * productFilter.PageSize)
+                .Take(productFilter.PageSize)
+                .ToListAsync();
+        }
+
+        public async Task<int> GetTotalCountAsync(ProductFilterRequest productFilter)
+        {
+            IQueryable<Product> query = _context.Products.Include(p=>p.Images);
+
+            if (productFilter.Featured == true)
+                query = query.Where(p => p.Featured);
+
+            return await query.CountAsync();
+        }
+
     }
-    }
+}

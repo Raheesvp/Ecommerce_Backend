@@ -1,4 +1,5 @@
-﻿using Domain.Entities;
+﻿using Application.DTOs.Product;
+using Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,7 +31,8 @@ namespace Application.Contracts.Repositories
 
         Task<IReadOnlyList<Product>> GetFeaturedAsync();
 
-  
+        Task<List<Product>> GetFilteredAsync(ProductFilterRequest productFilter);
+        Task<int> GetTotalCountAsync(ProductFilterRequest productFilter);
 
 
     }

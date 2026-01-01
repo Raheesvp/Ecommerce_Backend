@@ -9,10 +9,10 @@ namespace Application.DTOs.Profile
 {
     public  class UpdateUserProfile
     {
-        public string  FirstName { get; set; }
+        public string?  FirstName { get; set; }
 
-        public string LastName { get; set; }
-        public string MobileNumber { get; set; }
+        public string? LastName { get; set; }
+        public string? MobileNumber { get; set; }
 
         public IFormFile? ProfileImage { get; set; }
 

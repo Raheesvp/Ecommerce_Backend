@@ -1,13 +1,13 @@
 ﻿using Application.Contracts.Services;
 using Application.DTOs.Product;
-using Application.DTOs; // For generic response types
+using Application.DTOs; 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Project.WebAPI.Controllers
 {
     [ApiController]
-    [Route("api/product")]
+    [Route("api/products")]
     public class ProductController : ControllerBase
     {
         private readonly IProductService _productService;
@@ -83,6 +83,14 @@ namespace Project.WebAPI.Controllers
         {
             var products = await _productService.GetFeaturedProductAsync();
             return Ok(new ApiResponse<List<ProductResponse>>(200, "Featured Products Fetched", products));
+        }
+
+        [HttpGet("Filtered-Products")]
+
+        public async Task<IActionResult> GetProducts([FromQuery] ProductFilterRequest productFilter)
+        {
+            var result = await _productService.GetFilteredAsync(productFilter);
+            return Ok(new ApiResponse<PagedResponse<ProductResponse>>(200, "Successfully Fetched Successfully",result));
         }
     }
 }

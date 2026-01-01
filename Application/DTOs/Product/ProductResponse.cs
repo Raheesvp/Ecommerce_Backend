@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Domain.Entities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,9 +16,13 @@ namespace Application.DTOs.Product
 
         public int Stock { get; set; }
 
-        public String Description { get; set; }
+        //public String Description { get; set; }
+
+        //public virtual ICollection<ProductImage> Images { get; private set; }
 
         public string Category { get; set; }
+
+        public int Rating { get; set; }
 
 
         public List<string> Images { get; set; }

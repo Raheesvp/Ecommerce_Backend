@@ -13,10 +13,14 @@ namespace Domain.Entities
         public string Category { get; private set; }
         public string Description { get; private set; }
 
+        public bool IsFiltered { get; private set; }
+
+        public DateTime CreatedAt { get; set; }
+
       
         public string ImageUrl { get; private set; } = string.Empty;
 
-        public virtual ICollection<ProductImage> Images { get; private set; }
+        public virtual ICollection<ProductImage> Images { get; private set; } = new List<ProductImage>();
 
         public string Offer { get; private set; }
         public int Rating { get; private set; }
