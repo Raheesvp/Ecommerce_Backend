@@ -9,17 +9,17 @@ namespace Application.DTOs.Profile
 {
     public  class UserProfile
     {
-        public string Email { get; set; }
-        public string FirstName { get; set; }
+        public string Email { get; set; } = null!;
+        public string? FirstName { get; set; }
 
-        public string LastName { get; set; }
+        public string? LastName { get; set; }
 
 
         [Required]
-        public string MobileNumber { get; set; }
+        public string? MobileNumber { get; set; }
 
       
-        public string ProfileImageUrl { get; set; }
+        public string? ProfileImageUrl { get; set; }
 
 
 

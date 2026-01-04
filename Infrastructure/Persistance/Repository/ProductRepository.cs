@@ -88,30 +88,43 @@ using Domain.Entities;
 
         //filtering of the products
 
-        public async Task<List<Product>> GetFilteredAsync(ProductFilterRequest productFilter)
+        public async Task<List<Product>> GetFilteredAsync(ProductFilterRequest filter)
         {
             IQueryable<Product> query = _context.Products;
 
-            if (productFilter.Featured == true)
-                query = query.Where(p => p.Featured);
-
-            query = productFilter.SortBy switch
+            // 1️⃣ FILTER
+            if (filter.Featured == true)
             {
-                "price" => productFilter.Order == "desc"
-                ? query.OrderByDescending(p => p.Price)
-                : query.OrderBy(p => p.Price),
+                query = query.Where(p => p.Featured);
+            }
 
-                "rating" => productFilter.Order == "desc"
-                ? query.OrderByDescending(p => p.Rating)
-                : query.OrderBy(p => p.Rating),
+            // 2️⃣ SORT (ALWAYS APPLY A DEFAULT)
+            query = filter.SortBy switch
+            {
+                "price" => filter.Order == "desc"
+                    ? query.OrderByDescending(p => p.Price)
+                    : query.OrderBy(p => p.Price),
 
-                "createdAt" => query.OrderByDescending(p=>p.CreatedAt),_=>query
+                "rating" => filter.Order == "desc"
+                    ? query.OrderByDescending(p => p.Rating)
+                    : query.OrderBy(p => p.Rating),
+
+                "createdAt" => filter.Order == "asc"
+                    ? query.OrderBy(p => p.CreatedAt)
+                    : query.OrderByDescending(p => p.CreatedAt),
+
+                _ => query.OrderBy(p => p.Id) 
             };
 
-            return await query
-                .Skip((productFilter.Page - 1) * productFilter.PageSize)
-                .Take(productFilter.PageSize)
-                .ToListAsync();
+            // 3️⃣ PAGINATION (LAST)
+            if (filter.PageSize > 0)
+            {
+                query = query
+                    .Skip((filter.Page - 1) * filter.PageSize)
+                    .Take(filter.PageSize);
+            }
+
+            return await query.ToListAsync();
         }
 
         public async Task<int> GetTotalCountAsync(ProductFilterRequest productFilter)

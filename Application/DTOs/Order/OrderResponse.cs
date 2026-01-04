@@ -22,6 +22,8 @@ namespace Application.DTOs.Order
 
         public string PinNumber { get; set; }
 
+       
+
         public string MobileNumber { get; set; }
         public string PaymentMethod { get; set; } ="COD";
 

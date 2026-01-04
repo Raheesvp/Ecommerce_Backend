@@ -1,6 +1,7 @@
 ﻿using Application.Contracts.Repositories;
 using Application.Contracts.Services;
 using Application.DTOs.Auth;
+using Application.DTOs.Password;
 using Domain.Entities;
 using Domain.Enums;
 using System;
@@ -149,6 +150,80 @@ namespace Application.Services
                 RefreshToken = newRefreshToken,
                 Role = user.Role.ToString()
             };
+        }
+
+        //reset password section ...
+
+        public async Task<bool> ResetPasswordAsync(ResetPasswordDTO reset)
+        {
+            var user = await _userRepository.GetByEmailAsync(reset.Email);
+
+            if (user == null) return false;
+
+            if(user.ResetPasswordToken!= reset.EmailToken || user.ResetPasswordExpiry < DateTime.Now)
+            {
+                return false;
+            }
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(reset.NewPassword);
+
+            user.ResetPasswordToken = null;
+            user.ResetPasswordExpiry = null;
+
+            await _userRepository.UpdateAsync(user);
+            return true;
+        }
+
+
+        //forgot password section ...
+
+        public async Task<string> ForgotPasswordAsync(string email)
+        {
+            var user = await _userRepository.GetByEmailAsync(email);
+
+            if (user == null) return null;
+
+            var token = new Random().Next(100000, 999999).ToString();
+
+            user.ResetPasswordToken = token;
+            user.ResetPasswordExpiry = DateTime.Now.AddMinutes(15);
+
+            await _userRepository.UpdateAsync(user);
+
+            return token;
+        }
+
+
+        //change password section..
+
+        public async Task<bool> ChangePasswordAsync(int userId,string currentPassword,string newPassword)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+
+            if (!BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
+            {
+                return false;
+            }
+
+            string newPasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+
+            user.PasswordHash = newPasswordHash;
+            await _userRepository.UpdateAsync(user);
+
+            return true;
+        }
+
+        public async Task<bool> RevokeRefreshTokenAsync(int userId)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+
+            if (user == null) return false;
+
+            user.RefreshToken = null;
+            user.RefreshTokenExpiryTime = DateTime.MinValue;
+
+            await _userRepository.UpdateAsync(user);
+            return true;
         }
     }
 }

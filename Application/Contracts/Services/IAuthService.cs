@@ -1,4 +1,5 @@
 ﻿using Application.DTOs.Auth;
+using Application.DTOs.Password;
 using Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -17,5 +18,13 @@ namespace Application.Contracts.Services
         Task<LoginResponse> LoginAsync(LoginRequest request);
         // service interface for the refresh token 
         Task<LoginResponse> RefreshTokenAsync(RefreshTokenRequest request);
+
+        Task<bool> ResetPasswordAsync(ResetPasswordDTO resetDto);
+
+        Task<string> ForgotPasswordAsync(string email);
+
+        Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword);
+
+        Task<bool> RevokeRefreshTokenAsync(int userId);
     }
 }

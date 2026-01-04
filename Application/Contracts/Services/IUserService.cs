@@ -20,7 +20,7 @@ namespace Application.Contracts.Services
 
         Task<UserProfile> GetUserProfileAsync(int userId);
 
-        Task UpdateUserProfileImageAsync(int userId, string imageUrl);
+        //Task UpdateUserProfileImageAsync(int userId, string imageUrl);
 
         Task UpdateUserProfileAsync(int userId, UpdateUserProfile request);
 

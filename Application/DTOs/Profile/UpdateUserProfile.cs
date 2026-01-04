@@ -16,9 +16,6 @@ namespace Application.DTOs.Profile
 
         public IFormFile? ProfileImage { get; set; }
 
-        public string? CurrentPassword { get; set; }
-
-        public string? NewPassword { get; set; } 
 
     }
 }

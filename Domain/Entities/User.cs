@@ -45,8 +45,8 @@ namespace Domain.Entities
         public Roles Role { get; private set; }
         public bool IsBlocked { get;  set; }
 
-        public string? RefreshToken { get; private set; }
-        public DateTime? RefreshTokenExpiryTime { get; private set; }
+        public string? RefreshToken { get;  set; }
+        public DateTime? RefreshTokenExpiryTime { get;  set; }
 
 
         public void Block() => IsBlocked = true;
@@ -58,6 +58,13 @@ namespace Domain.Entities
         {
             PasswordHash = passwordHash;
         }
+
+
+        //reset password
+
+        public string? ResetPasswordToken { get; set; }
+
+        public DateTime? ResetPasswordExpiry { get; set; }
 
         public void SetRefreshToken(string token, DateTime expiry)
         {

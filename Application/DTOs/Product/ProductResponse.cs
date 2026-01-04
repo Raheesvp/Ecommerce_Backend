@@ -24,6 +24,8 @@ namespace Application.DTOs.Product
 
         public int Rating { get; set; }
 
+        public DateTime CreatedAt { get; set; }
+
 
         public List<string> Images { get; set; }
     }

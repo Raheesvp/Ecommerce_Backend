@@ -6,6 +6,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Security.Cryptography;
+using System.Diagnostics;
 
 namespace Infrastructure.Services
 {
@@ -27,11 +28,15 @@ namespace Infrastructure.Services
 
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString());
 
+          
+
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role.ToString())
+                new Claim(ClaimTypes.Role, user.Role.ToString()),
+          
+            
             };
             var expiryMinutes = int.Parse(_configuration["Jwt:AccessTokenMinutes"]!);
 

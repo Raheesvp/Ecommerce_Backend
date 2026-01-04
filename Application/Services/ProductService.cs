@@ -243,6 +243,7 @@ namespace Application.Services
                     Price = p.Price,
                     Rating = p.Rating,
                     Stock = p.Stock,
+                     CreatedAt = p.CreatedAt,
                     Category = p.Category,
                      Images = p.Images.Any()
             ? p.Images.Select(img => img.Url).ToList()

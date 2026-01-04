@@ -31,7 +31,7 @@ namespace Project.WebAPI.Controllers
             return Ok(userProfile);
         }
 
-        // 👇 One Endpoint to rule them all (Image, Name, Password)
+       
         [HttpPut("profile-update")]
         [Authorize(Roles = "User")]
         public async Task<IActionResult> UpdateProfile([FromForm] UpdateUserProfile request)
@@ -49,7 +49,7 @@ namespace Project.WebAPI.Controllers
             }
             catch (Exception ex)
             {
-                // Catch errors like "Current password incorrect"
+                
                 return BadRequest(ex.Message);
             }
         }
