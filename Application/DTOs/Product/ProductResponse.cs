@@ -16,13 +16,15 @@ namespace Application.DTOs.Product
 
         public int Stock { get; set; }
 
-        //public String Description { get; set; }
+        public String Description { get; set; }
 
         //public virtual ICollection<ProductImage> Images { get; private set; }
 
         public string Category { get; set; }
 
         public int Rating { get; set; }
+
+        public string Image { get; set; }
 
         public DateTime CreatedAt { get; set; }
 

@@ -79,6 +79,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 
+//store the data in the session 
+
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromDays(7);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+});
+
+
 
 builder.Services.AddAuthorization();
 
@@ -96,7 +109,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5175").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+        policy.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     });
 });
 
@@ -137,10 +150,16 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<Middlewares>();
 app.UseHttpsRedirection();
 
+app.UseRouting();
+
+app.UseSession();
+
 app.UseCors("AllowFrontend");
+
 
 app.UseAuthentication();
 app.UseAuthorization();
+
 
 
 app.MapControllers();

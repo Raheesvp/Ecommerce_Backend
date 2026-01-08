@@ -92,5 +92,16 @@ namespace Project.WebAPI.Controllers
             var result = await _productService.GetFilteredAsync(productFilter);
             return Ok(new ApiResponse<PagedResponse<ProductResponse>>(200, "Successfully Fetched Successfully",result));
         }
+
+        [HttpGet("{productId:int}/related")]
+
+
+        public async Task<IActionResult> GetRelatedProducts(int productId)
+        {
+            var related = await _productService.GetRelatedProductsAsync(productId);
+            return Ok(new ApiResponse<List<ProductResponse>>(200, "Success", related));
+        }
+
+
     }
 }

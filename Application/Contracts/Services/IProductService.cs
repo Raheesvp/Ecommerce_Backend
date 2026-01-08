@@ -19,7 +19,7 @@ namespace Application.Contracts.Services
 
         Task<PagedResponse<ProductResponse>> GetFilteredAsync(ProductFilterRequest productFilter);
 
-
+        Task<List<ProductResponse>> GetRelatedProductsAsync(int productId);
 
 
 

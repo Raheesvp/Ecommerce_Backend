@@ -17,7 +17,7 @@ namespace Application.Contracts.Services
 
         //get the order by id 
 
-        Task<OrderResponse> GetOrderByIdAsync(int userId, int orderId);
+        Task<OrderResponse> GetOrderByIdAsync(int orderId);
 
         //admin sees the orders 
 
@@ -30,6 +30,10 @@ namespace Application.Contracts.Services
         //Task UpdateAsync(Order order);
 
         Task<bool> CancelOrderAsync(int orderId, int userId);
+
+        Task<bool> VerifyOrderPaymentAsync(PaymentVerificationRequest request);
+
+        Task<OrderResponse> ProcessDirectBuyAsync(int userId, DirectBuyRequest request);
     }
 
     

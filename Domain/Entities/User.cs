@@ -30,6 +30,8 @@ namespace Domain.Entities
             Role = role;
             IsBlocked = false;
         }
+        public int UserId { get; set; }
+
 
         public string FirstName { get;  set; }
 
@@ -45,8 +47,10 @@ namespace Domain.Entities
         public Roles Role { get; private set; }
         public bool IsBlocked { get;  set; }
 
-        public string? RefreshToken { get;  set; }
-        public DateTime? RefreshTokenExpiryTime { get;  set; }
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
+
+        public ICollection<ShippingAddress> ShippingAddress { get; set; } = new List<ShippingAddress>();
 
 
         public void Block() => IsBlocked = true;
@@ -73,5 +77,5 @@ namespace Domain.Entities
         }
     }
 
-   
+
 }

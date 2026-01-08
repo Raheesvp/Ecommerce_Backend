@@ -51,23 +51,6 @@ using Domain.Entities;
             public async Task<bool> ExistByNameAsync(string name) =>
                 await _context.Products.AnyAsync(p => p.Name == name);
 
-            //public async Task AddAsync(Product product)
-            //{
-            //    _context.Products.Add(product);
-            //    await _context.SaveChangesAsync();
-            //}
-
-            //public async Task UpdateAsync(Product product)
-            //{
-            //    _context.Products.Update(product);
-            //    await _context.SaveChangesAsync();
-            //}
-
-            //public async Task DeleteAsync(Product product)
-            //{
-            //    _context.Products.Remove(product);
-            //    await _context.SaveChangesAsync();
-            //}
 
             public async Task<bool> ExistsAsync(int productId)
             {
@@ -135,6 +118,16 @@ using Domain.Entities;
                 query = query.Where(p => p.Featured);
 
             return await query.CountAsync();
+        }
+
+        public async Task<List<Product>> GetRelatedByCategoryAsync(string category, int excludeId, int limit)
+        {
+            return await _context.Products
+                .Include(p => p.Images) 
+                .Where(p => p.Category == category && p.Id != excludeId)
+                .OrderBy(r => Guid.NewGuid()) 
+                .Take(limit)
+                .ToListAsync();
         }
 
     }

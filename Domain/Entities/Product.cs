@@ -13,6 +13,8 @@ namespace Domain.Entities
         public string Category { get; private set; }
         public string Description { get; private set; }
 
+        public int ProductId { get; set; }
+
         public bool IsFiltered { get; private set; }
 
         public DateTime CreatedAt { get; set; }

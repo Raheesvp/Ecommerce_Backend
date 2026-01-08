@@ -34,6 +34,8 @@ namespace Application.Contracts.Repositories
         Task<List<Product>> GetFilteredAsync(ProductFilterRequest productFilter);
         Task<int> GetTotalCountAsync(ProductFilterRequest productFilter);
 
+        Task<List<Product>> GetRelatedByCategoryAsync(string category, int excludeId, int limit);
+
 
     }
 }

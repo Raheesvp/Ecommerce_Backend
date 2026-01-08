@@ -26,26 +26,27 @@ namespace Infrastructure.Services
 
             var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
 
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString());
+   
 
           
 
             var claims = new[]
             {
+                new Claim(ClaimTypes.NameIdentifier,user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Role, user.Role.ToString()),
           
             
             };
-            var expiryMinutes = int.Parse(_configuration["Jwt:AccessTokenMinutes"]!);
+            var expiryMinutes = double.Parse(_configuration["Jwt:AccessTokenExpirationHours"]?? "3");
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
 
 
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddMinutes(expiryMinutes),
+                Expires = DateTime.UtcNow.AddHours(expiryMinutes),
                 SigningCredentials = new SigningCredentials(
                     new SymmetricSecurityKey(keyBytes),
                     SecurityAlgorithms.HmacSha256
@@ -68,7 +69,7 @@ namespace Infrastructure.Services
                 ValidateIssuer = false,
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!)),
-                ValidateLifetime = false // <--- CRITICAL: Allows reading expired tokens
+                ValidateLifetime = false 
             };
 
             var tokenHandler = new JwtSecurityTokenHandler();

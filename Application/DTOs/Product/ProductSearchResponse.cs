@@ -13,5 +13,7 @@ namespace Application.DTOs.Product
         public decimal Price { get; set; }
         public string Category { get; set; } = null!;
         public string? Image { get; set; }
+
+        public string? Description { get; set; }
     }
 }

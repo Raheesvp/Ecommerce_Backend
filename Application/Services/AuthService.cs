@@ -60,9 +60,7 @@ namespace Application.Services
         }
 
         public async Task<LoginResponse> LoginAsync(LoginRequest request)
-
         {
-
             if (request == null)
                 throw new ArgumentException("Request body is required");
 
@@ -73,14 +71,11 @@ namespace Application.Services
             if (user == null || user.IsBlocked)
                 throw new UnauthorizedAccessException("Invalid credentials");
 
-            var isCorrectPassword =
-                BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
-
-            if (!isCorrectPassword)
+            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 throw new UnauthorizedAccessException("Invalid credentials");
 
-            string accessToken = _jwtService.GenerateAccessToken(user);
-            string refreshToken = _jwtService.GenerateRefreshToken();
+            var accessToken = _jwtService.GenerateAccessToken(user);
+            var refreshToken = _jwtService.GenerateRefreshToken();
 
             user.SetRefreshToken(refreshToken, DateTime.UtcNow.AddDays(7));
             await _userRepository.UpdateAsync(user);
@@ -88,62 +83,64 @@ namespace Application.Services
             return new LoginResponse
             {
                 AccessToken = accessToken,
-                RefreshToken = refreshToken,
+                RefreshToken = refreshToken, // TEMP, session will store it
                 Role = user.Role.ToString()
             };
         }
+
 
         //service for the refresh token 
 
 
 
 
-        public async Task<LoginResponse> RefreshTokenAsync(RefreshTokenRequest request)
+        public async Task<LoginResponse?> RefreshTokenAsync(
+      string expiredAccessToken,
+      string sessionRefreshToken)
         {
+            if (string.IsNullOrWhiteSpace(expiredAccessToken))
+                return null;
 
-            if (request == null)
-                throw new ArgumentException("Request body is required");
+            if (string.IsNullOrWhiteSpace(sessionRefreshToken))
+                return null;
 
-            if (string.IsNullOrWhiteSpace(request.AccessToken))
-                throw new ArgumentException("Access token is required");
-
-            if (string.IsNullOrWhiteSpace(request.RefreshToken))
-                throw new ArgumentException("Refresh token is required");
-
+            // 1. Extract principal from expired access token
             ClaimsPrincipal principal;
-
             try
             {
-                principal = _jwtService.GetPrincipalFromExpiredToken(request.AccessToken);
+                principal = _jwtService.GetPrincipalFromExpiredToken(expiredAccessToken);
             }
             catch
             {
-                throw new UnauthorizedAccessException("Invalid access token");
+                return null;
             }
 
+            // 2. Extract userId
             var userIdClaim = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
             if (!int.TryParse(userIdClaim, out int userId))
-                throw new UnauthorizedAccessException("Invalid token claims");
+                return null;
 
+            // 3. Fetch user
             var user = await _userRepository.GetByIdAsync(userId);
-
             if (user == null)
-                throw new UnauthorizedAccessException("User not found");
+                return null;
 
-            if (user.RefreshToken != request.RefreshToken ||
+            // 4. Validate refresh token
+            if (user.RefreshToken != sessionRefreshToken ||
                 user.RefreshTokenExpiryTime <= DateTime.UtcNow)
             {
-                throw new UnauthorizedAccessException("Invalid or expired refresh token");
+                return null;
             }
 
+            // 5. Generate new tokens
             var newAccessToken = _jwtService.GenerateAccessToken(user);
             var newRefreshToken = _jwtService.GenerateRefreshToken();
 
+            // 6. Rotate refresh token
             user.SetRefreshToken(newRefreshToken, DateTime.UtcNow.AddDays(7));
             await _userRepository.UpdateAsync(user);
 
-         
+            // 7. Return response
             return new LoginResponse
             {
                 AccessToken = newAccessToken,
@@ -151,6 +148,7 @@ namespace Application.Services
                 Role = user.Role.ToString()
             };
         }
+
 
         //reset password section ...
 
@@ -200,14 +198,15 @@ namespace Application.Services
         {
             var user = await _userRepository.GetByIdAsync(userId);
 
+            if (user == null) return false;
+
             if (!BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
             {
                 return false;
             }
 
-            string newPasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+           user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
 
-            user.PasswordHash = newPasswordHash;
             await _userRepository.UpdateAsync(user);
 
             return true;

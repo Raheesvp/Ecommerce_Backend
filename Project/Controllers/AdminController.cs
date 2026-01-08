@@ -39,18 +39,22 @@ namespace Project.WebAPI.Controllers
                 return Ok(new ApiResponse<UserResponse>(200, "User fetched successfully", response));
             }
 
-            [HttpDelete("{id}")]
-            public async Task<IActionResult> DeleteUser(int id)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteUser(int id)
+        {
+            try
             {
-                var deleted = await _userService.DeleteAsync(id);
+                await _userService.DeleteAsync(id);
+                return Ok(new ApiResponse<string>(200, "User Removed Successfully"));
 
-                if (!deleted)
-                {
-                    return NotFound(new ApiResponse<string>(404, "User not found"));
-                }
 
-                return Ok(new ApiResponse<string>(200, "User deleted successfully"));
+
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new ApiResponse<string>(400, ex.Message));
+            }
+        }
 
             [HttpPut("{id}/block-status")]
             public async Task<IActionResult> ToggleBlockStatus(int id)

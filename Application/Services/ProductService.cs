@@ -72,6 +72,8 @@ namespace Application.Services
                 Name = p.Name,
                 Price = p.Price,
                 Category = p.Category,
+                Description = p.Description,
+            
                 Image = p.Images?.FirstOrDefault()?.Url
 
             }).ToList();
@@ -207,7 +209,8 @@ namespace Application.Services
         {
             Id = p.Id,
             Name = p.Name,
-         
+            Description = p.Description ?? string.Empty,
+            Rating = p.Rating,
             Price = p.Price,
             Category = p.Category,
             Stock = p.Stock,
@@ -242,6 +245,7 @@ namespace Application.Services
                     Name = p.Name,
                     Price = p.Price,
                     Rating = p.Rating,
+                    Description = p.Description,
                     Stock = p.Stock,
                      CreatedAt = p.CreatedAt,
                     Category = p.Category,
@@ -250,6 +254,27 @@ namespace Application.Services
             : new List<string> { p.ImageUrl }
                 }).ToList()
             };
+        }
+
+        //get related products
+
+        public async Task<List<ProductResponse>> GetRelatedProductsAsync(int productId)
+        {
+            var product = await _repository.GetByIdAsync(productId);
+            if (product == null) return new List<ProductResponse>();
+
+            var related = await _repository.GetRelatedByCategoryAsync(product.Category, productId, 10);
+
+            return related.Select(p => new ProductResponse
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Price = p.Price,
+                Category = p.Category,
+                Description = p.Description,
+                Stock = p.Stock,
+                Image = p.Images?.FirstOrDefault()?.Url
+            }).ToList();
         }
     }
 }

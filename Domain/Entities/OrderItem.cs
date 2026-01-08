@@ -1,4 +1,5 @@
 ﻿using Domain.Common;
+using Org.BouncyCastle.Asn1.Mozilla;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -14,10 +15,15 @@ namespace Domain.Entities
 
         public int ProductId { get; set; }
 
-        public string ProductName { get; private set; } = null!;
+        public string ProductName { get;  set; } = null!;
 
         public int Quantity { get;  set; }
         public decimal Price { get; set; } 
+
+        public decimal UnitPrice { get; set; }
+
+        public string? ImageUrl { get; set; }
+
 
      
         public Order Order { get; set; } = null!;
@@ -25,13 +31,24 @@ namespace Domain.Entities
         [ForeignKey("ProductId")]
         public Product Product { get; set; } = null!;
 
-        private  OrderItem() { }
+        public   OrderItem() { }
+
+        public int Id { get; set; }
+
+
+
+       
+
+   
+
 
 
         public OrderItem(Product product, int quantity)
         {
             ProductId = product.Id;
             ProductName = product.Name;
+            ImageUrl = product.ImageUrl;
+            UnitPrice = product.Price * quantity;
             Price = product.Price;
             Quantity = quantity;
 

@@ -7,6 +7,7 @@ using Infrastructure.Persistence.Repository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.OpenApi.Services;
 using System.Security.Claims;
 
 namespace Project.WebAPI.Controllers
@@ -40,14 +41,61 @@ namespace Project.WebAPI.Controllers
         {
 
             var result = await _authService.LoginAsync(request);
+
+
+            if (result == null)
+                return Unauthorized(new ApiResponse<string>(401, "Invalid Credentials"));
+
+            //store refresh token in session (server-side)
+            HttpContext.Session.SetString("RefreshToken", result.RefreshToken);
+
+            //do not send refresh token to client so doesnot sent to the react frontend
+
+
+            result.RefreshToken = null!;
+
+
             return Ok(new ApiResponse<LoginResponse>(200, "Login Successful", result));
         }
-
+       
         [HttpPost("Refresh-Token")]
-        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+        public async Task<IActionResult> RefreshToken()
         {
-            var result = await _authService.RefreshTokenAsync(request);
-            return Ok(new ApiResponse<LoginResponse>(200, "Token Refreshed Successfully", result));
+            var refreshToken = HttpContext.Session.GetString("RefreshToken");
+            Console.WriteLine($"RefreshToken From Session:{refreshToken}");
+
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                return Unauthorized(
+                    new ApiResponse<string>(401, "Session expired. Please login again.")
+                );
+            }
+
+            var expiredAccessToken = Request.Headers["Authorization"].ToString().Replace("Bearer ", "").Trim();
+
+            var result = await _authService.RefreshTokenAsync(expiredAccessToken, refreshToken);
+
+            if (result == null)
+            {
+                HttpContext.Session.Clear();
+                return Unauthorized(
+                    new ApiResponse<string>(401, "Invalid refresh token")
+                );
+            }
+
+            // Rotate refresh token in session
+            HttpContext.Session.SetString(
+                "RefreshToken",
+                result.RefreshToken
+            );
+
+            result.RefreshToken = null!;
+
+            return Ok(new ApiResponse<LoginResponse>(
+                200,
+                "Token Refreshed Successfully",
+                result
+            ));
         }
 
         [HttpPost("reset-password")]
@@ -78,12 +126,12 @@ namespace Project.WebAPI.Controllers
             if (token == null)
             {
 
-            return BadRequest(new ApiResponse<string>(400, "Invalid Email"));
+                return BadRequest(new ApiResponse<string>(400, "Invalid Email"));
             }
             return Ok(new ApiResponse<string>(200, "Token Generated Successfully", token));
         }
 
-        [Authorize(Roles ="User")]
+        [Authorize(Roles = "User")]
 
         [HttpPost("Change-Password")]
 
@@ -94,7 +142,7 @@ namespace Project.WebAPI.Controllers
             if (string.IsNullOrEmpty(userIdString))
             {
 
-            return Unauthorized(new ApiResponse<string>(401, "User not authenticated"));
+                return Unauthorized(new ApiResponse<string>(401, "User not authenticated"));
             }
 
             int userId = int.Parse(userIdString);
@@ -102,30 +150,31 @@ namespace Project.WebAPI.Controllers
 
             var result = await _authService.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword);
 
-            
-                if (!result)
-                {
-                    return BadRequest(new ApiResponse<string>(400, "Current Password is Incorrect"));
-                }
-            return Ok(new ApiResponse<string>(200, "Password Changed Successfully", null));
-            }
 
+            if (!result)
+            {
+                return BadRequest(new ApiResponse<string>(400, "Current Password is Incorrect"));
+            }
+            return Ok(new ApiResponse<string>(200, "Password Changed Successfully", null));
+        }
+        [Authorize]
         [HttpPost("Logout")]
         public async Task<IActionResult> Logout()
         {
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        
+
             if (!string.IsNullOrEmpty(userIdString) && int.TryParse(userIdString, out int userId))
             {
                 await _authService.RevokeRefreshTokenAsync(userId);
             }
+            //remvoes the refresh tokne 
 
-        
+            HttpContext.Session.Clear();
+
             return Ok(new ApiResponse<string>(200, "Logged out successfully"));
         }
 
 
-    }
 
-           
     }
+}

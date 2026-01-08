@@ -15,6 +15,8 @@ namespace Application.DTOs.Order
         [StringLength(500, MinimumLength = 10, ErrorMessage = "Address must be at least 10 characters long")]
         public string ShippingAddress { get; set; } = string.Empty;
 
+       
+
   
         [Required(ErrorMessage = "City is required")]
         [StringLength(100)]
@@ -39,5 +41,9 @@ namespace Application.DTOs.Order
        
         [Required(ErrorMessage = "Payment Method is required")]
         public string PaymentMethod { get; set; } = "COD";
+
+        public List<OrderItemDto> OrderItems { get; set; }
+
+        public decimal TotalPrice { get; set; }
     }
 }

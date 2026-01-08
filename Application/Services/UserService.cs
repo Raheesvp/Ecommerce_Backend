@@ -18,12 +18,15 @@ namespace Application.Services
 
         private readonly IFileService _fileService;
 
-   
+        private readonly IOrderRepository _orderRepository;
 
-        public UserService(IUserRepository userRepository,IFileService fileService)
+
+
+        public UserService(IUserRepository userRepository, IFileService fileService, IOrderRepository orderRepository)
         {
             _userRepository = userRepository;
             _fileService = fileService;
+            _orderRepository = orderRepository;
         }
 
         // 1. Get All Users
@@ -60,14 +63,20 @@ namespace Application.Services
         }
 
         // 3. Delete User
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(int userId)
         {
-            var user = await _userRepository.GetByIdAsync(id);
+            var user = await _userRepository.GetByIdAsync(userId);
             if (user == null) return false;
 
             if (user.Role == Roles.Admin)
                 throw new InvalidOperationException("Security Alert :You Cannot Block an Administrator");
 
+            var userOrders = await _orderRepository.GetUserOrdersAsync(userId);
+
+            if (userOrders.Any())
+            {
+                throw new InvalidOperationException("Cannot Delete User. This User has Purchase History");
+            }
 
             user.IsDeleted = true;
             user.DeletedAt = DateTime.UtcNow;
@@ -80,10 +89,23 @@ namespace Application.Services
         }
 
         // 4. Block/Unblock User
-        public async Task<bool?> ToggleBlockStatusAsync(int id)
+        public async Task<bool?> ToggleBlockStatusAsync(int userId)
         {
-            var user = await _userRepository.GetByIdAsync(id);
+            var user = await _userRepository.GetByIdAsync(userId);
             if (user == null) return null;
+
+            if (!user.IsBlocked)
+            {
+                var orders = await _orderRepository.GetUserOrdersAsync(userId);
+
+                bool hasCompleteOrders = orders.Any(o => o.Status != OrderStatus.Delivered && o.Status != OrderStatus.Cancelled);
+
+                if (hasCompleteOrders)
+                {
+                    throw new InvalidOperationException("Action Denied: This user has active orders(Pending, Processing, or Shipped). " +
+                "You must complete or cancel all orders before blocking the account.");
+                }
+            }
 
             if (user.Role == Roles.Admin)
                 throw new InvalidOperationException("Security Alert :You Cannot Block an Administrator");
@@ -107,7 +129,7 @@ namespace Application.Services
                 Role = u.Role.ToString(),
                 IsBlocked = u.IsBlocked,
                 CreatedAt = u.CreatedAt,
-   
+
                 // You can also map "DeletedAt" here if you want to see when they were deleted
             }).ToList();
         }
@@ -158,31 +180,5 @@ namespace Application.Services
         }
 
 
-        //change the password
-
-        //public async Task<bool> ChangePasswordAsync(int userId, ChangePasswordDto request)
-        //{
-        //    var user = await _userRepository.GetByIdAsync(userId);
-        //    if (user == null) throw new KeyNotFoundException("User not found");
-
-
-        //    bool isCorrect = BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash);
-
-
-
-
-        //    if (!isCorrect)
-        //    {
-        //        throw new Exception("Current password is incorrect.");
-        //    }
-
-
-        //    string newHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-
-        //    user.PasswordHash = newHash;
-
-        //    await _userRepository.UpdateAsync(user);
-        //    return true;
-        //}
     }
 }
