@@ -1,5 +1,6 @@
 ﻿using Application.Contracts.Services;
 using Application.DTOs.Admin;
+using Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,10 +14,14 @@ namespace Project.WebAPI.Controllers
         {
             // Inject the Service, not the Use Cases
             private readonly IUserService _userService;
+            private readonly IOrderService _orderService;
+             private readonly IProductService _productService;
 
-            public AdminController(IUserService userService)
+            public AdminController(IUserService userService,IOrderService orderService,IProductService productService)
             {
                 _userService = userService;
+            _productService = productService;
+            _orderService = orderService;
             }
 
             [HttpGet("users")]
@@ -76,6 +81,15 @@ namespace Project.WebAPI.Controllers
         {
             var response = await _userService.GetDeletdUsersAsync();
             return Ok(new ApiResponse<List<UserResponse>>(200, "Deleted users fetched successfully", response));
+        }
+
+        [HttpGet("dashboard-stats")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetDashboardStats()
+        {
+            // One single call to the service
+            var stats = await _orderService.GetDashBoardAsync();
+            return Ok(new ApiResponse<DashBoardResponse>(200, "Dashboard stats fetched", stats));
         }
     }
     }

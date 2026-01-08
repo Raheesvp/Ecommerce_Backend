@@ -1,9 +1,11 @@
 ﻿using Application.Contracts.Repositories;
 using Application.Contracts.Services;
+using Application.DTOs.Admin;
 using Application.DTOs.Order;
 using Domain.Entities;
 using Domain.Enums;
 using Microsoft.AspNetCore.Mvc.Razor;
+using Razorpay.Api;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -343,5 +345,33 @@ namespace Application.Services
                 throw new Exception($"Direct Buy Failed: {innerMsg}");
             }
         }
+
+        //admin dashbord service 
+
+        public async Task<DashBoardResponse> GetDashBoardAsync()
+        {
+            var orders = await _unitOfWork.Orders.GetAllAsync();
+            var users = await _unitOfWork.Users.GetAllAsync();
+            var products = await _unitOfWork.Products.GetAllAsync();
+
+            return new DashBoardResponse
+            {
+                TotalRevenue = orders.Sum(o => o.TotalAmount),
+                TotalOrders = orders.Count,
+                TotalUsers = users.Count(u => u.Role == Roles.User),
+                TotalProducts = products.Count,
+                RecentOrders = orders
+            .OrderByDescending(o => o.OrderDate)
+            .Take(5)
+            .Select(o => new RecentOrderDTO
+            {
+                OrderId = o.Id,
+                CustomerName = o.user?.FullName ?? "Unknown",
+                Amount = o.TotalAmount,
+                Status = o.Status.ToString()
+            }).ToList() // No 'Async' here because 'orders' is already a List
+            };
+        }
+        }
+
     }
-}

@@ -14,9 +14,19 @@ namespace Infrastructure.Persistance
         private readonly AppDbContext _context;
         private IDbContextTransaction? _currentTransaction;
 
-        public UnitOfWork(AppDbContext context)
+
+        public IOrderRepository Orders { get; private set; }
+        public IProductRepository Products { get; private set; }
+
+        public IUserRepository Users { get; private set; }
+
+        public UnitOfWork(AppDbContext context,IOrderRepository orderRepository,IProductRepository productRepository,IUserRepository userRepository)
         {
             _context = context;
+
+            Orders = orderRepository;
+            Products = productRepository;
+            Users = userRepository;
         }
 
         public async Task BeginTransactionAsync()
@@ -63,6 +73,13 @@ namespace Infrastructure.Persistance
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();
+        }
+
+        public void Dispose()
+        {
+            _context.Dispose();
+            _currentTransaction?.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

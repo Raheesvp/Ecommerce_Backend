@@ -6,11 +6,18 @@ using System.Threading.Tasks;
 
 namespace Application.Contracts.Repositories
 {
-    public  interface IUnitOfWork
+    public  interface IUnitOfWork : IDisposable
     {
+        IOrderRepository Orders { get; }
+
+        IProductRepository Products { get; }
+
+        IUserRepository Users { get; }
+        Task SaveChangesAsync();
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();
         Task RollbackTransactionAsync();
-        Task SaveChangesAsync();
+
+
     }
 }

@@ -1,4 +1,5 @@
-﻿using Application.DTOs.Order;
+﻿using Application.DTOs.Admin;
+using Application.DTOs.Order;
 using Domain.Entities;
 using Domain.Enums;
 using System;
@@ -33,8 +34,13 @@ namespace Application.Contracts.Services
 
         Task<bool> VerifyOrderPaymentAsync(PaymentVerificationRequest request);
 
+        
         Task<OrderResponse> ProcessDirectBuyAsync(int userId, DirectBuyRequest request);
+
+        Task<DashBoardResponse> GetDashBoardAsync();
     }
+
+
 
     
 }

@@ -16,6 +16,8 @@ namespace Application.DTOs.Order
         public string TransactionId { get; set; } 
         public string? ProviderOrderId { get; set; } 
 
+        
+
         [Required]
         public string Status { get; set; } 
 
