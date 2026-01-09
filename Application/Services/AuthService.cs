@@ -64,6 +64,9 @@ namespace Application.Services
 
         public async Task<LoginResponse> LoginAsync(LoginRequest request)
         {
+
+           
+
             if (request == null)
                 throw new ArgumentException("Request body is required");
 
@@ -80,13 +83,16 @@ namespace Application.Services
             var accessToken = _jwtService.GenerateAccessToken(user);
             var refreshToken = _jwtService.GenerateRefreshToken();
 
-            user.SetRefreshToken(refreshToken, DateTime.UtcNow.AddDays(7));
+            var expiryDate = DateTime.UtcNow.AddDays(7);
+
+            user.SetRefreshToken(refreshToken,expiryDate);
             await _userRepository.UpdateAsync(user);
 
             return new LoginResponse
             {
                 AccessToken = accessToken,
-                RefreshToken = refreshToken, // TEMP, session will store it
+                RefreshToken = refreshToken,
+                RefreshTokenExpiry = expiryDate,
                 Role = user.Role.ToString()
             };
         }
@@ -199,11 +205,11 @@ namespace Application.Services
             var subject = "Password Reset Request";
             var resetLink = $"http://localhost:3000/reset-password?token={token}&email={email}";
             var htmlMessage = $@"
-        <h1>Reset Your Password</h1>
-        <p>Your reset code is: <strong>{token}</strong></p>
-        <p>Alternatively, click the link below to reset your password:</p>
-        <a href='{resetLink}'>Reset Password</a>
-        <p>This link will expire in 15 minutes.</p>";
+                 <h1>Reset Your Password</h1>
+                 <p>Your reset code is: <strong>{token}</strong></p>
+                 <p>Alternatively, click the link below to reset your password:</p>
+             <a href='{resetLink}'>Reset Password</a>
+             <p>This link will expire in 15 minutes.</p>";
 
             // Send the email using the injected service
             await _emailSender.SendEmailAsync(email, subject, htmlMessage);
@@ -239,7 +245,7 @@ namespace Application.Services
             if (user == null) return false;
 
             user.RefreshToken = null;
-            user.RefreshTokenExpiryTime = DateTime.MinValue;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(-1);
 
             await _userRepository.UpdateAsync(user);
             return true;

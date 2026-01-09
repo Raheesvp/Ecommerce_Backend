@@ -46,14 +46,17 @@ namespace Project.WebAPI.Controllers
             if (result == null)
                 return Unauthorized(new ApiResponse<string>(401, "Invalid Credentials"));
 
-            //store refresh token in session (server-side)
-            HttpContext.Session.SetString("RefreshToken", result.RefreshToken);
+            var cookeOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = false,
+                SameSite = SameSiteMode.None,
+                Expires = DateTime.UtcNow.AddDays(7)
+            };
 
-            //do not send refresh token to client so doesnot sent to the react frontend
-
+            Response.Cookies.Append("refreshtoken", result.RefreshToken, cookeOptions);
 
             result.RefreshToken = null!;
-
 
             return Ok(new ApiResponse<LoginResponse>(200, "Login Successful", result));
         }
@@ -61,13 +64,14 @@ namespace Project.WebAPI.Controllers
         [HttpPost("Refresh-Token")]
         public async Task<IActionResult> RefreshToken()
         {
-            var refreshToken = HttpContext.Session.GetString("RefreshToken");
-            Console.WriteLine($"RefreshToken From Session:{refreshToken}");
+
+            var refreshToken = Request.Cookies["refreshToken"];
+           
 
             if (string.IsNullOrEmpty(refreshToken))
             {
                 return Unauthorized(
-                    new ApiResponse<string>(401, "Session expired. Please login again.")
+                    new ApiResponse<string>(401, "Please login again.")
                 );
             }
 
@@ -77,17 +81,20 @@ namespace Project.WebAPI.Controllers
 
             if (result == null)
             {
-                HttpContext.Session.Clear();
-                return Unauthorized(
-                    new ApiResponse<string>(401, "Invalid refresh token")
-                );
+
+                Response.Cookies.Delete("refreshToken");
+                return Unauthorized(new ApiResponse<string>(401, "Invalid Refresh Token"));
             }
 
-            // Rotate refresh token in session
-            HttpContext.Session.SetString(
-                "RefreshToken",
-                result.RefreshToken
-            );
+            Response.Cookies.Append("refreshToken", result.RefreshToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = false,
+                SameSite = SameSiteMode.None,
+                Expires = DateTime.UtcNow.AddDays(7)
+            });
+
+           
 
             result.RefreshToken = null!;
 
@@ -179,7 +186,12 @@ namespace Project.WebAPI.Controllers
             }
             //remvoes the refresh tokne 
 
-            HttpContext.Session.Clear();
+            Response.Cookies.Delete("refreshToken", new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = false,
+                SameSite = SameSiteMode.None
+            });
 
             return Ok(new ApiResponse<string>(200, "Logged out successfully"));
         }
