@@ -15,6 +15,7 @@ using Microsoft.OpenApi.Models;
 using Project.WebAPI;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -109,9 +110,17 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+        policy.WithOrigins("http://localhost:5174").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     });
 });
+
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // This line allows C# to convert "Shipped" -> OrderStatus.Shipped
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
 // Repositories
 builder.Services.AddScoped(typeof(IGenericeRepository<>), typeof(GenericeRepository<>));
@@ -120,6 +129,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
 builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 
 // Services
 builder.Services.AddScoped<IProductService, ProductService>();
@@ -129,6 +139,7 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IWishlistService, WishlistService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 
 
 

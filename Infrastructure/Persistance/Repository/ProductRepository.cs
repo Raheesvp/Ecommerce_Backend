@@ -130,5 +130,15 @@ using Domain.Entities;
                 .ToListAsync();
         }
 
+        public async Task UpdateAsync(Product product)
+        {
+            
+            //_context.Products.Update(product);
+            _context.Entry(product).State = EntityState.Modified;
+
+        
+            await Task.CompletedTask;
+        }
+
     }
 }

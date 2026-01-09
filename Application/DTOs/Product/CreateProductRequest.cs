@@ -14,16 +14,18 @@ namespace Application.DTOs.Product
         public string Name { get; set; } = string.Empty;
         [Required]
         public decimal Price { get; set; }
-        [Required]
-        public string Category { get; set; } = string.Empty;
+      
         [Required]
         public string Description { get; set; }
+
+        [Required]
+        public string Category { get; set; } = string.Empty;
+
         [Required]
  
 
-        public List<IFormFile> Images { get; set; } = new();
-      
-        public string Offer { get; set; } = string.Empty;
+        public List<IFormFile> Images { get; set; } 
+        public string? Offer { get; set; } = string.Empty;
         [Range(0,5)]
         public int Rating { get; set; }
         [Required]

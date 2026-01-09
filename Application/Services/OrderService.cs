@@ -34,7 +34,9 @@ namespace Application.Services
 
         public async Task<int> PlaceOrderAsync(int userId, CreateOrderRequest request)
         {
+            // Start transaction to ensure Order and OrderItems are created atomically
             await _unitOfWork.BeginTransactionAsync();
+
             try
             {
                 var cartItems = await _cartRepository.GetCartByUserIdAsync(userId);
@@ -47,8 +49,9 @@ namespace Application.Services
                 foreach (var cartItem in cartItems)
                 {
                     var product = await _productRepository.GetByIdAsync(cartItem.ProductId);
-                    if (product == null) throw new Exception("Product Not Found");
+                    if (product == null) throw new Exception($"Product with ID {cartItem.ProductId} Not Found");
 
+                    // Validate stock availability
                     if (product.Stock < cartItem.Quantity)
                         throw new InvalidOperationException($"Product '{product.Name}' is out of stock.");
 
@@ -57,36 +60,34 @@ namespace Application.Services
                     totalAmount += (product.Price * cartItem.Quantity);
                 }
 
-                // --- FIXED: Mapping all fields from the Request to the Entity ---
                 var order = new Order
                 {
                     UserId = userId,
                     OrderDate = DateTime.UtcNow,
                     Status = OrderStatus.Pending,
                     TotalAmount = totalAmount,
-
-                    // Assigning the shipping details received from frontend
                     ReceiverName = request.ReceiverName,
                     MobileNumber = request.MobileNumber,
                     ShippingAddress = request.ShippingAddress,
                     City = request.City,
                     State = request.State,
                     PinNumber = request.PinNumber,
-
                     PaymentMethod = request.PaymentMethod,
                     OrderItems = orderItems
                 };
 
                 await _orderRepository.CreateAsync(order);
-                await _cartRepository.ClearCartAsync(userId);
+
+                // Commit creates the 'Pending' order in the database
                 await _unitOfWork.CommitTransactionAsync();
 
                 return order.Id;
             }
             catch (Exception)
             {
+                // If anything fails, undo the order creation
                 await _unitOfWork.RollbackTransactionAsync();
-                throw;
+                throw; // Re-throw to let the Controller handle the error message
             }
         }
 
@@ -98,24 +99,24 @@ namespace Application.Services
                 var order = await _orderRepository.GetByIdAsync(orderId);
                 if (order == null) return false;
 
-                // FIX: Removed Enum.TryParse because order.Status is already an Enum
                 OrderStatus currentStatus = order.Status;
 
+                // 1. If already Cancelled or Delivered, no more changes allowed
                 if (currentStatus == OrderStatus.Cancelled || currentStatus == OrderStatus.Delivered)
                 {
-                    throw new InvalidOperationException($"Cannot update status. Order is already {currentStatus}.");
+                    throw new InvalidOperationException($"Order is already {currentStatus}. No further updates allowed.");
                 }
 
-                if (newStatus != OrderStatus.Cancelled)
-                {
-                    if ((int)newStatus != (int)currentStatus + 1)
-                    {
-                        throw new InvalidOperationException($"Invalid status transition. You must move from {currentStatus} to {(OrderStatus)((int)currentStatus + 1)}.");
-                    }
-                }
-
+                // 2. Logic for CANCELLATION
                 if (newStatus == OrderStatus.Cancelled)
                 {
+                    // REQUIREMENT: Cannot cancel if already Shipped
+                    if (currentStatus >= OrderStatus.Shipped)
+                    {
+                        throw new InvalidOperationException("Cannot cancel an order that has already been shipped.");
+                    }
+
+                    // Restore Stock
                     foreach (var item in order.OrderItems)
                     {
                         var product = await _productRepository.GetByIdAsync(item.ProductId);
@@ -126,17 +127,23 @@ namespace Application.Services
                         }
                     }
                 }
+                // 3. Logic for STEP-BY-STEP movement (Non-cancel updates)
+                else
+                {
+                    if ((int)newStatus != (int)currentStatus + 1)
+                    {
+                        throw new InvalidOperationException($"Step-by-step error: Move from {currentStatus} to {(OrderStatus)((int)currentStatus + 1)}.");
+                    }
+                }
 
-                // FIX: order.Status is an Enum, assign newStatus directly
+                // Apply changes
                 order.Status = newStatus;
 
                 if (newStatus == OrderStatus.Shipped)
-                {
                     order.ShippingDate = DateTime.UtcNow;
-                }
 
                 await _orderRepository.UpdateAsync(order);
-                await _unitOfWork.CommitTransactionAsync();
+                await _unitOfWork.CommitTransactionAsync(); // THIS saves to DB
                 return true;
             }
             catch (Exception)
@@ -145,7 +152,6 @@ namespace Application.Services
                 throw;
             }
         }
-
         public async Task<List<OrderResponse>> GetUserOrdersAsync(int userId)
         {
             var orders = await _orderRepository.GetUserOrdersAsync(userId);
@@ -236,44 +242,55 @@ namespace Application.Services
 
             try
             {
-                // 1. Get the order including the items
+                // 1. Get the order with its items
                 var order = await _orderRepository.GetByIdAsync(request.OrderId);
                 if (order == null) return false;
 
+                // 2. Only process if payment was successful
                 if (request.Status != null && request.Status.Equals("success", StringComparison.OrdinalIgnoreCase))
                 {
-                    // 2. REDUCE STOCK NOW
+                    // 3. REDUCE STOCK
                     foreach (var item in order.OrderItems)
                     {
                         var product = await _productRepository.GetByIdAsync(item.ProductId);
-                        if (product == null) throw new Exception("Product in order no longer exists.");
+                        if (product == null) throw new Exception($"Product {item.ProductId} no longer exists.");
 
                         if (product.Stock < item.Quantity)
                         {
-                            throw new InvalidOperationException($"Stock ran out for {product.Name} while processing payment.");
+                            throw new InvalidOperationException($"Insufficient stock for {product.Name}. Please contact support.");
                         }
 
                         product.Stock -= item.Quantity;
                         await _productRepository.UpdateAsync(product);
                     }
 
-                    // 3. Update Order Status
+                    // 4. Update Order Details
                     order.Status = OrderStatus.Processing;
                     order.PaymentReference = request.TransactionId;
                     order.PaidOn = DateTime.UtcNow;
-                 
 
                     await _orderRepository.UpdateAsync(order);
+
+                    // 5. CRITICAL: Clear the user's cart
+                    // This ensures the items disappear from the UI cart after payment
+                    await _cartRepository.ClearCartAsync(order.UserId);
+
+                    // 6. COMMIT ALL CHANGES
                     await _unitOfWork.CommitTransactionAsync();
                     return true;
                 }
 
-              
+                // If payment failed at the gateway, we do nothing. 
+                // Items stay in the cart so user can try again.
                 return false;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                // If anything fails (Database error, Cart error, Stock error), UNDO EVERYTHING
                 await _unitOfWork.RollbackTransactionAsync();
+
+                // Log the error for debugging
+                Console.WriteLine($"Payment Verification Error: {ex.Message}");
                 throw;
             }
         }

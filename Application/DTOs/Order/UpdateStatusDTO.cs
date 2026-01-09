@@ -1,4 +1,5 @@
 ﻿using Domain.Enums;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,5 +11,7 @@ namespace Application.DTOs.Order
     public class UpdateStatusDTO
     {
         public OrderStatus Status { get; set; }
+
+     
     }
 }

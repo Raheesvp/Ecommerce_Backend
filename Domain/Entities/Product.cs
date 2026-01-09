@@ -10,7 +10,7 @@ namespace Domain.Entities
         public decimal Price { get; private set; }
         public decimal OriginalPrice { get; private set; }
         public int Stock { get;  set; }
-        public string Category { get; private set; }
+        public string Category { get;  set; }
         public string Description { get; private set; }
 
         public int ProductId { get; set; }

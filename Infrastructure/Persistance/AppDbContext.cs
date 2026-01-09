@@ -30,6 +30,10 @@ namespace Infrastructure.Persistence
 
         public DbSet<Order> Orders { get; set; }
 
+        //cratea table for category 
+
+        public DbSet<CategoryEntity> CategoryEntities { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

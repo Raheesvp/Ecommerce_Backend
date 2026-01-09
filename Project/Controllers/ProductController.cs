@@ -46,8 +46,8 @@ namespace Project.WebAPI.Controllers
             return Ok(new ApiResponse<PagedResponse<ProductResponse>>(200, "Success", result));
         }
 
-        [HttpPost("Create-Product-Admin")]
         [Authorize(Roles = "Admin")]
+        [HttpPost("Create-Product-Admin")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> Create([FromForm] CreateProductRequest request)
         {
@@ -55,7 +55,7 @@ namespace Project.WebAPI.Controllers
             return Ok(new ApiResponse<string>(201, "Product created successfully"));
         }
 
-        [HttpPatch("{id}-Product-Update-Admin")]
+        [HttpPatch("Update/{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id, [FromForm] UpdateProductRequest request)
         {
