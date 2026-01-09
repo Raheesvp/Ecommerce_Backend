@@ -4,6 +4,7 @@ using Application.DTOs.Auth;
 using Application.DTOs.Password;
 using Domain.Entities;
 using Domain.Enums;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,13 +18,15 @@ namespace Application.Services
     {
         
         private readonly IUserRepository _userRepository;
-        private readonly IJwtService _jwtService; 
+        private readonly IJwtService _jwtService;
+        private readonly IEmailSender _emailSender;
 
    
-        public AuthService(IUserRepository userRepository, IJwtService jwtService)
+        public AuthService(IUserRepository userRepository, IJwtService jwtService,IEmailSender emailSender)
         {
             _userRepository = userRepository;
             _jwtService = jwtService;
+            _emailSender = emailSender;
         }
 
         public async Task<User> RegisterAsync(RegisterRequest request)
@@ -158,13 +161,19 @@ namespace Application.Services
 
             if (user == null) return false;
 
-            if(user.ResetPasswordToken!= reset.EmailToken || user.ResetPasswordExpiry < DateTime.Now)
+            // Use OrdinalIgnoreCase to prevent issues with capital/small letters
+            // Ensure both creation and check use UtcNow
+            bool isTokenValid = string.Equals(user.ResetPasswordToken, reset.Token, StringComparison.OrdinalIgnoreCase);
+            bool isNotExpired = user.ResetPasswordExpiry > DateTime.UtcNow;
+
+            if (!isTokenValid || !isNotExpired)
             {
+                // Log this to your console so you know WHICH one failed
+                Console.WriteLine($"Reset Fail: TokenValid={isTokenValid}, NotExpired={isNotExpired}");
                 return false;
             }
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(reset.NewPassword);
-
             user.ResetPasswordToken = null;
             user.ResetPasswordExpiry = null;
 
@@ -174,23 +183,34 @@ namespace Application.Services
 
 
         //forgot password section ...
-
-        public async Task<string> ForgotPasswordAsync(string email)
+        public async Task<string?> ForgotPasswordAsync(string email)
         {
             var user = await _userRepository.GetByEmailAsync(email);
-
             if (user == null) return null;
 
             var token = new Random().Next(100000, 999999).ToString();
 
             user.ResetPasswordToken = token;
-            user.ResetPasswordExpiry = DateTime.Now.AddMinutes(15);
+            user.ResetPasswordExpiry = DateTime.UtcNow.AddMinutes(15); // Use UtcNow for consistency
 
             await _userRepository.UpdateAsync(user);
 
+            // --- NEW EMAIL LOGIC START ---
+            var subject = "Password Reset Request";
+            var resetLink = $"http://localhost:3000/reset-password?token={token}&email={email}";
+            var htmlMessage = $@"
+        <h1>Reset Your Password</h1>
+        <p>Your reset code is: <strong>{token}</strong></p>
+        <p>Alternatively, click the link below to reset your password:</p>
+        <a href='{resetLink}'>Reset Password</a>
+        <p>This link will expire in 15 minutes.</p>";
+
+            // Send the email using the injected service
+            await _emailSender.SendEmailAsync(email, subject, htmlMessage);
+            // --- NEW EMAIL LOGIC END ---
+
             return token;
         }
-
 
         //change password section..
 

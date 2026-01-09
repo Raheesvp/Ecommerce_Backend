@@ -93,62 +93,74 @@ namespace Application.Services
 
         public async Task<bool> UpdateOrderStatusAsync(int orderId, OrderStatus newStatus)
         {
+            // 1. Ensure your Repository GetById explicitly includes OrderItems
+            // If you don't Include them, the stock restoration logic below will be ignored.
+            var order = await _orderRepository.GetByIdAsync(orderId);
+            if (order == null) return false;
+
             await _unitOfWork.BeginTransactionAsync();
+
             try
             {
-                var order = await _orderRepository.GetByIdAsync(orderId);
-                if (order == null) return false;
-
                 OrderStatus currentStatus = order.Status;
 
-                // 1. If already Cancelled or Delivered, no more changes allowed
+                // Validation: No changes for final states
                 if (currentStatus == OrderStatus.Cancelled || currentStatus == OrderStatus.Delivered)
                 {
-                    throw new InvalidOperationException($"Order is already {currentStatus}. No further updates allowed.");
+                    throw new InvalidOperationException($"Order is already {currentStatus}. Status cannot be changed.");
                 }
 
-                // 2. Logic for CANCELLATION
                 if (newStatus == OrderStatus.Cancelled)
                 {
-                    // REQUIREMENT: Cannot cancel if already Shipped
                     if (currentStatus >= OrderStatus.Shipped)
                     {
                         throw new InvalidOperationException("Cannot cancel an order that has already been shipped.");
                     }
 
-                    // Restore Stock
-                    foreach (var item in order.OrderItems)
+                    // Restore Stock logic
+                    // Ensure OrderItems are actually loaded into memory here
+                    if (order.OrderItems != null && order.OrderItems.Any())
                     {
-                        var product = await _productRepository.GetByIdAsync(item.ProductId);
-                        if (product != null)
+                        foreach (var item in order.OrderItems)
                         {
-                            product.Stock += item.Quantity;
-                            await _productRepository.UpdateAsync(product);
+                            var product = await _productRepository.GetByIdAsync(item.ProductId);
+                            if (product != null)
+                            {
+                                product.Stock += item.Quantity;
+                                await _productRepository.UpdateAsync(product);
+                            }
                         }
                     }
                 }
-                // 3. Logic for STEP-BY-STEP movement (Non-cancel updates)
                 else
                 {
+                    // Strict step-by-step logic
                     if ((int)newStatus != (int)currentStatus + 1)
                     {
-                        throw new InvalidOperationException($"Step-by-step error: Move from {currentStatus} to {(OrderStatus)((int)currentStatus + 1)}.");
+                        throw new InvalidOperationException($"Cannot move status from {currentStatus} directly to {newStatus}.");
                     }
                 }
 
-                // Apply changes
+                // Apply changes to the object in RAM
                 order.Status = newStatus;
 
                 if (newStatus == OrderStatus.Shipped)
                     order.ShippingDate = DateTime.UtcNow;
 
+                // 2. CRITICAL FIX: Explicitly mark the order as Modified in the repository
+                // This ensures EF Core generates the 'UPDATE Orders SET Status = ...' SQL
                 await _orderRepository.UpdateAsync(order);
-                await _unitOfWork.CommitTransactionAsync(); // THIS saves to DB
+
+                // 3. Persist everything to SQL Server
+                await _unitOfWork.CommitTransactionAsync();
+
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 await _unitOfWork.RollbackTransactionAsync();
+                // Log the actual error to see why it failed
+                Console.WriteLine($"Update Status Error: {ex.Message}");
                 throw;
             }
         }
@@ -179,7 +191,7 @@ namespace Application.Services
                 OrderDate = o.OrderDate,
                 TotalAmount = o.TotalAmount,
                 // FIX: Convert Enum to String for DTO
-                Status = o.Status.ToString(),
+                Status = ((int)o.Status).ToString(),
                 ReceiverName = o.ReceiverName,
                 ShippingAddress = o.ShippingAddress,
               

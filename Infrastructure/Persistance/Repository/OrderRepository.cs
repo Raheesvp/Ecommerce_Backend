@@ -58,8 +58,10 @@ namespace Infrastructure.Persistance.Repository
 
         public async Task UpdateAsync(Order order)
         {
-            _context.Orders.Update(order);
-            await _context.SaveChangesAsync();
+            //_context.Orders.Update(order);
+            _context.Entry(order).State = EntityState.Modified;
+            //await _context.SaveChangesAsync();
+            await Task.CompletedTask;
         }
 
     }

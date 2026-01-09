@@ -239,7 +239,7 @@ namespace Application.Services
             Price = p.Price,
             Category = p.Category,
             Stock = p.Stock,
-            Images = p.Images?.Select(i => i.Url).ToList() ?? new List<string>(),
+            Image = p.Images?.FirstOrDefault()?.Url?? p.ImageUrl
         };
 
         public async Task<List<ProductResponse>> GetFeaturedProductAsync()

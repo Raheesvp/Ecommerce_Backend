@@ -12,7 +12,7 @@ namespace Application.DTOs.Password
 
         public string Email { get; set; }
 
-        public string EmailToken { get; set; }
+        public string Token { get; set; }
 
 
         [Required]
