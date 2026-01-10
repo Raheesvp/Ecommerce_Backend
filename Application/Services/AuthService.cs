@@ -103,14 +103,9 @@ namespace Application.Services
 
 
 
-        public async Task<LoginResponse?> RefreshTokenAsync(
-      string expiredAccessToken,
-      string sessionRefreshToken)
+        public async Task<LoginResponse?> RefreshTokenAsync(string expiredAccessToken, string sessionRefreshToken)
         {
-            if (string.IsNullOrWhiteSpace(expiredAccessToken))
-                return null;
-
-            if (string.IsNullOrWhiteSpace(sessionRefreshToken))
+            if (string.IsNullOrWhiteSpace(expiredAccessToken) || string.IsNullOrWhiteSpace(sessionRefreshToken))
                 return null;
 
             // 1. Extract principal from expired access token
@@ -134,19 +129,26 @@ namespace Application.Services
             if (user == null)
                 return null;
 
-            // 4. Validate refresh token
-            if (user.RefreshToken != sessionRefreshToken ||
-                user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+            // 4. NOW Validate refresh token (User is now loaded)
+            if (user.RefreshToken != sessionRefreshToken)
             {
+                Console.WriteLine($"DEBUG: Token mismatch! DB: {user.RefreshToken} vs Cookie: {sessionRefreshToken}");
+                return null;
+            }
+
+            if (user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+            {
+                Console.WriteLine($"DEBUG: Token expired in DB! Expiry: {user.RefreshTokenExpiryTime}, Current UTC: {DateTime.UtcNow}");
                 return null;
             }
 
             // 5. Generate new tokens
             var newAccessToken = _jwtService.GenerateAccessToken(user);
             var newRefreshToken = _jwtService.GenerateRefreshToken();
+            var newExpiryDate = DateTime.UtcNow.AddDays(7); // Define the new expiry
 
-            // 6. Rotate refresh token
-            user.SetRefreshToken(newRefreshToken, DateTime.UtcNow.AddDays(7));
+            // 6. Rotate refresh token in DB
+            user.SetRefreshToken(newRefreshToken, newExpiryDate);
             await _userRepository.UpdateAsync(user);
 
             // 7. Return response
@@ -154,6 +156,7 @@ namespace Application.Services
             {
                 AccessToken = newAccessToken,
                 RefreshToken = newRefreshToken,
+                RefreshTokenExpiry = newExpiryDate, // Corrected from 'expir'
                 Role = user.Role.ToString()
             };
         }

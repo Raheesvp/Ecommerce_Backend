@@ -140,5 +140,21 @@ using Domain.Entities;
             await Task.CompletedTask;
         }
 
+        public async Task<List<Product>> GetByCategoryIdAsync(int categoryId)
+        {
+            // 1. Find the category name from the Categories table using the ID
+            var category = await _context.CategoryEntities.FindAsync(categoryId);
+
+            // 2. Return empty if not found
+            if (category == null) return new List<Product>();
+
+            // 3. Normalized Search
+            return await _context.Products
+                .Include(p => p.Images)
+                .Where(p => p.Category.Trim().ToLower() == category.Name.Trim().ToLower()
+                            && p.IsActive)
+                .ToListAsync();
+        }
+
     }
 }

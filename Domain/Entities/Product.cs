@@ -13,6 +13,10 @@ namespace Domain.Entities
         public string Category { get;  set; }
         public string Description { get; private set; }
 
+        //public int CategoryId { get; set; }
+
+        //public virtual CategoryEntity Category { get; set; }
+
         public int ProductId { get; set; }
 
         public bool IsFiltered { get; private set; }

@@ -1,5 +1,6 @@
 ﻿using Application.Contracts.Repositories;
 using Application.Contracts.Services;
+using Application.DTOs.Category;
 using Application.DTOs.Product;
 using Domain.Entities;
 using Domain.Exceptions;
@@ -46,6 +47,8 @@ namespace Application.Services
 
                return Map(product);
         }
+
+        //category wise product 
 
         public async Task<List<ProductResponse>> GetByCategoryAsync(string category)
         {
@@ -299,6 +302,28 @@ namespace Application.Services
                 Description = p.Description,
                 Stock = p.Stock,
                 Image = p.Images?.FirstOrDefault()?.Url
+            }).ToList();
+        }
+
+        //get category product 
+
+        public async Task<List<ProductCategoryResponse>> GetProductsByCategoryIdAsync(int categoryId)
+        {
+            var category = await _categoryRepository.GetByIdAsync(categoryId)
+                          ?? throw new NotFoundException("Category not found");
+
+            var product = await _repository.GetByCategoryIdAsync(categoryId);
+
+       
+
+            return product.Select(p => new ProductCategoryResponse
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Price = p.Price,
+                Stock = p.Stock,
+              
+                Image = p.Images?.FirstOrDefault()?.Url ?? p.ImageUrl ?? ""
             }).ToList();
         }
     }

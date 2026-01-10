@@ -101,7 +101,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5177").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+        policy.WithOrigins("http://localhost:5178").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     });
 });
 
@@ -110,7 +110,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         // This line allows C# to convert "Shipped" -> OrderStatus.Shipped
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
 
 // Repositories

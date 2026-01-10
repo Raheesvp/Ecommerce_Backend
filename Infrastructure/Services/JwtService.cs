@@ -39,7 +39,7 @@ namespace Infrastructure.Services
           
             
             };
-            var expiryMinutes = double.Parse(_configuration["Jwt:AccessTokenExpirationHours"]?? "3");
+            var expiryMinutes = double.Parse(_configuration["Jwt:AccessTokenExpirationHours"]?? "5");
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {

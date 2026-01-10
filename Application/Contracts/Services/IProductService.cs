@@ -1,4 +1,5 @@
-﻿using Application.DTOs.Product;
+﻿using Application.DTOs.Category;
+using Application.DTOs.Product;
 
 namespace Application.Contracts.Services
 {
@@ -22,6 +23,7 @@ namespace Application.Contracts.Services
         Task<List<ProductResponse>> GetRelatedProductsAsync(int productId);
 
 
+        Task<List<ProductCategoryResponse>> GetProductsByCategoryIdAsync(int categoryId);
 
 
 

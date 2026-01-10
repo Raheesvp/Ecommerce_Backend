@@ -46,27 +46,35 @@ namespace Project.WebAPI.Controllers
             if (result == null)
                 return Unauthorized(new ApiResponse<string>(401, "Invalid Credentials"));
 
-            var cookeOptions = new CookieOptions
+            var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
                 Secure = false,
-                SameSite = SameSiteMode.None,
+                SameSite = SameSiteMode.Lax,
+                Path = "/",
                 Expires = DateTime.UtcNow.AddDays(7)
             };
 
-            Response.Cookies.Append("refreshtoken", result.RefreshToken, cookeOptions);
+            Response.Cookies.Append("refreshtoken", result.RefreshToken, cookieOptions);
 
             result.RefreshToken = null!;
 
             return Ok(new ApiResponse<LoginResponse>(200, "Login Successful", result));
         }
+
+        [AllowAnonymous]
        
         [HttpPost("Refresh-Token")]
         public async Task<IActionResult> RefreshToken()
         {
+            Console.WriteLine(">>> REFRESH CONTROLLER HIT");
 
-            var refreshToken = Request.Cookies["refreshToken"];
-           
+            var refreshToken = Request.Cookies["refreshtoken"];
+
+            Console.WriteLine($"Cookie header: {Request.Headers["Cookie"]}");
+            Console.WriteLine($"Refresh cookie: {Request.Cookies["refreshtoken"]}");
+
+
 
             if (string.IsNullOrEmpty(refreshToken))
             {
@@ -82,15 +90,15 @@ namespace Project.WebAPI.Controllers
             if (result == null)
             {
 
-                Response.Cookies.Delete("refreshToken");
+                Response.Cookies.Delete("refreshtoken");
                 return Unauthorized(new ApiResponse<string>(401, "Invalid Refresh Token"));
             }
 
-            Response.Cookies.Append("refreshToken", result.RefreshToken, new CookieOptions
+            Response.Cookies.Append("refreshtoken", result.RefreshToken, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = false,
-                SameSite = SameSiteMode.None,
+                SameSite = SameSiteMode.Lax,
                 Expires = DateTime.UtcNow.AddDays(7)
             });
 
@@ -186,11 +194,12 @@ namespace Project.WebAPI.Controllers
             }
             //remvoes the refresh tokne 
 
-            Response.Cookies.Delete("refreshToken", new CookieOptions
+            Response.Cookies.Delete("refreshtoken", new CookieOptions
             {
-                HttpOnly = true,
-                Secure = false,
-                SameSite = SameSiteMode.None
+                //HttpOnly = true,
+                //Secure = false,
+                Path = "/",
+                SameSite = SameSiteMode.Lax
             });
 
             return Ok(new ApiResponse<string>(200, "Logged out successfully"));

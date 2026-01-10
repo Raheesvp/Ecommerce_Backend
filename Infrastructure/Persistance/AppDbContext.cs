@@ -44,8 +44,29 @@ namespace Infrastructure.Persistence
 
             modelBuilder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
 
+            modelBuilder.Entity<Product>()
+        .Property(p => p.Price)
+        .HasColumnType("decimal(18,2)");
 
-            
+            modelBuilder.Entity<Product>()
+                .Property(p => p.OriginalPrice)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<Order>()
+                .Property(o => o.TotalAmount)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<OrderItem>()
+                .Property(oi => oi.UnitPrice)
+                .HasColumnType("decimal(18,2)");
+
+            // 3. Resolve Relationship Warning
+            // Apply the same query filter to related entities to ensure consistency
+            modelBuilder.Entity<Order>().HasQueryFilter(o => !o.user.IsDeleted);
+
+
+
+
         }
 
     }

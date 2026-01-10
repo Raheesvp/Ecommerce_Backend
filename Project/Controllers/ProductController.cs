@@ -3,6 +3,7 @@ using Application.DTOs.Product;
 using Application.DTOs; 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Application.DTOs.Category;
 
 namespace Project.WebAPI.Controllers
 {
@@ -102,6 +103,17 @@ namespace Project.WebAPI.Controllers
             return Ok(new ApiResponse<List<ProductResponse>>(200, "Success", related));
         }
 
+        [HttpGet("category/{categoryId}")]
+
+        public async Task<IActionResult> GetByCategory(int categoryId)
+        {
+            var products = await _productService.GetProductsByCategoryIdAsync(categoryId);
+
+            return Ok(new ApiResponse<List<ProductCategoryResponse>>(
+                200, $"Fetched {products.Count} products", products));
+        }
+
+       
 
     }
 }
