@@ -35,7 +35,7 @@ namespace Application.Services
             var products = await _repository.GetAllAsync();
 
             return products
-         //.Where(p => p.IsActive == true) 
+         .Where(p => p.IsActive)
          .Select(Map)
          .ToList();
         }
@@ -206,7 +206,7 @@ namespace Application.Services
             var product = await _repository.GetByIdAsync(id)
                 ?? throw new NotFoundException("Product not found");
 
-            product.IsActive = false; // Just hide it
+            product.IsActive = false;
             await _repository.UpdateAsync(product);
 
             await _unitOfWork.CommitTransactionAsync();
@@ -242,7 +242,9 @@ namespace Application.Services
             Price = p.Price,
             Category = p.Category,
             Stock = p.Stock,
-            Image = p.Images?.FirstOrDefault()?.Url?? p.ImageUrl
+            Image = p.Images != null && p.Images.Any()
+            ? p.Images.First().Url
+            : p.ImageUrl
         };
 
         public async Task<List<ProductResponse>> GetFeaturedProductAsync()
@@ -304,27 +306,25 @@ namespace Application.Services
                 Image = p.Images?.FirstOrDefault()?.Url
             }).ToList();
         }
+        //get archieved products
 
-        //get category product 
-
-        public async Task<List<ProductCategoryResponse>> GetProductsByCategoryIdAsync(int categoryId)
+        public async Task<List<ProductResponse>> GetArchieveProductAsync()
         {
-            var category = await _categoryRepository.GetByIdAsync(categoryId)
-                          ?? throw new NotFoundException("Category not found");
+            var archivedProducts = await _repository.GetAllArchievedAsync();
 
-            var product = await _repository.GetByCategoryIdAsync(categoryId);
+            return archivedProducts.Select(Map).ToList();
+        }
 
-       
+        //restore prodcuts
 
-            return product.Select(p => new ProductCategoryResponse
-            {
-                Id = p.Id,
-                Name = p.Name,
-                Price = p.Price,
-                Stock = p.Stock,
-              
-                Image = p.Images?.FirstOrDefault()?.Url ?? p.ImageUrl ?? ""
-            }).ToList();
+        public async Task RestoreAsync(int id)
+        {
+            var product = await _repository.GetByIdWithDeletedAsync(id) 
+                ?? throw new NotFoundException("Product not found in archieve");
+
+            product.IsActive = true;
+            await _repository.UpdateAsync(product);
+            await _unitOfWork.CommitTransactionAsync();
         }
     }
 }

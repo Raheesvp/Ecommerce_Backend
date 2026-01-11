@@ -22,12 +22,8 @@ namespace Application.Contracts.Services
 
         Task<List<ProductResponse>> GetRelatedProductsAsync(int productId);
 
-
-        Task<List<ProductCategoryResponse>> GetProductsByCategoryIdAsync(int categoryId);
-
-
-
-        //Task<bool> ExistByNameAsync(string name);
+        Task<List<ProductResponse>> GetArchieveProductAsync();
+        Task RestoreAsync(int id);
 
     }
 }

@@ -21,7 +21,7 @@ namespace Project.WebAPI.Controllers
 
             public AdminController(IUserService userService,IOrderService orderService,IProductService productService,ICategoryService categoryService)
             {
-                _userService = userService;
+            _userService = userService;
             _productService = productService;
             _orderService = orderService;
             _categoryService = categoryService;
@@ -64,7 +64,7 @@ namespace Project.WebAPI.Controllers
             }
         }
 
-            [HttpPut("{id}/block-status")]
+            [HttpPut("block-status/{id}")]
             public async Task<IActionResult> ToggleBlockStatus(int id)
             {
                 var newStatus = await _userService.ToggleBlockStatusAsync(id);
@@ -79,7 +79,7 @@ namespace Project.WebAPI.Controllers
             }
 
 
-        [HttpGet("users/deleted")] // URL: api/admin/users/deleted
+        [HttpGet("users/deleted")] 
         public async Task<IActionResult> GetDeletedUsers()
         {
             var response = await _userService.GetDeletdUsersAsync();
@@ -95,9 +95,9 @@ namespace Project.WebAPI.Controllers
             return Ok(new ApiResponse<DashBoardResponse>(200, "Dashboard stats fetched", stats));
         }
 
-        //category view 
+        //category view     
 
-        // 1. GET ALL (Fixed version of your code)
+       
         [HttpGet("categories")]
         public async Task<IActionResult> GetCategories()
         {
@@ -106,7 +106,7 @@ namespace Project.WebAPI.Controllers
             return Ok(new ApiResponse<List<CategoryResponse>>(200, "Categories Fetched", result));
         }
 
-        // 2. CREATE (Required for your "Add Product" page logic)
+       
         [HttpPost("categories")]
         public async Task<IActionResult> CreateCategory([FromBody] CreateCategoryRequest request)
         {
@@ -117,7 +117,7 @@ namespace Project.WebAPI.Controllers
             return Ok(new ApiResponse<CategoryResponse>(201, "Category Created Successfully", category));
         }
 
-        // 3. UPDATE (To rename a category)
+      
         [HttpPut("categories/{id}")]
         public async Task<IActionResult> UpdateCategory(int id, [FromBody] CreateCategoryRequest request)
         {
@@ -125,12 +125,19 @@ namespace Project.WebAPI.Controllers
             return Ok(new ApiResponse<CategoryResponse>(200, "Category Updated", updated));
         }
 
-        // 4. DELETE
+       
         [HttpDelete("categories/{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
-            await _categoryService.DeleteCategoryAsync(id);
-            return Ok(new ApiResponse<string>(200, "Category Deleted Successfully"));
+            try
+            {
+                await _categoryService.DeleteCategoryAsync(id);
+                return Ok(new ApiResponse<string>(200, "Category and all its products removed"));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new ApiResponse<string>(400, ex.Message));
+            }
         }
     }
     }

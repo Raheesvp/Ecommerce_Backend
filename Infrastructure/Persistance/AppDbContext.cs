@@ -35,6 +35,9 @@ namespace Infrastructure.Persistence
         public DbSet<CategoryEntity> CategoryEntities { get; set; }
 
 
+
+
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -42,15 +45,21 @@ namespace Infrastructure.Persistence
             modelBuilder.Entity<WishlistEntity>()
                 .HasIndex(w => new { w.UserId, w.ProductId }).IsUnique();
 
+        
+
             modelBuilder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
+
+            modelBuilder.Entity<Product>().HasQueryFilter(p => p.IsActive);
 
             modelBuilder.Entity<Product>()
         .Property(p => p.Price)
         .HasColumnType("decimal(18,2)");
 
             modelBuilder.Entity<Product>()
-                .Property(p => p.OriginalPrice)
-                .HasColumnType("decimal(18,2)");
+     .HasOne<CategoryEntity>()
+     .WithMany()
+     .HasForeignKey("CategoryId")
+     .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Order>()
                 .Property(o => o.TotalAmount)

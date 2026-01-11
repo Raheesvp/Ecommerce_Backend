@@ -1,9 +1,12 @@
-﻿using Application.Contracts.Services;
-using Application.DTOs.Product;
+﻿using Application.Contracts.Repositories;
+using Application.Contracts.Services;
 using Application.DTOs; 
+using Application.DTOs.Category;
+using Application.DTOs.Product;
+using Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Application.DTOs.Category;
+using System.Security.Claims;
 
 namespace Project.WebAPI.Controllers
 {
@@ -13,10 +16,21 @@ namespace Project.WebAPI.Controllers
     {
         private readonly IProductService _productService;
 
+        private readonly ICategoryRepository _categroyRepo;
+
+        private readonly INotificationService _notificationService;
+
+        
+
+
+
         // CLEAN CONSTRUCTOR: Only one service needed now!
-        public ProductController(IProductService productService)
+        public ProductController(IProductService productService, ICategoryRepository categoryRepository,INotificationService notificationService)
         {
             _productService = productService;
+            _categroyRepo = categoryRepository;
+            _notificationService = notificationService;
+           
         }
 
         [HttpGet]
@@ -33,10 +47,13 @@ namespace Project.WebAPI.Controllers
             return Ok(new ApiResponse<ProductResponse>(200, "Success", product));
         }
 
-        [HttpGet("category/{category}")]
-        public async Task<IActionResult> GetByCategory(string category)
+        [HttpGet("category/{categoryId:int}")]
+        public async Task<IActionResult> GetByCategory(int  categoryId)
         {
-            var products = await _productService.GetByCategoryAsync(category);
+            var category = await _categroyRepo.GetByIdAsync(categoryId);
+
+            if (category == null) return NotFound();
+            var products = await _productService.GetByCategoryAsync(category.Name);
             return Ok(new ApiResponse<List<ProductResponse>>(200, "Success", products));
         }
 
@@ -64,12 +81,12 @@ namespace Project.WebAPI.Controllers
             return Ok(new ApiResponse<string>(200, "Product updated successfully"));
         }
 
-        [HttpDelete("{id}-Delete-Admin")]
+        [HttpDelete("delete-product/{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             await _productService.DeleteAsync(id);
-            return Ok(new ApiResponse<string>(200, "Product deleted successfully"));
+            return Ok(new ApiResponse<string>(200, "Product archieved successfully"));
         }
 
         [HttpGet("search")]
@@ -103,17 +120,32 @@ namespace Project.WebAPI.Controllers
             return Ok(new ApiResponse<List<ProductResponse>>(200, "Success", related));
         }
 
-        [HttpGet("category/{categoryId}")]
+        //get archieved products
 
-        public async Task<IActionResult> GetByCategory(int categoryId)
+        [HttpGet("archived-inventory")]
+        [Authorize(Roles ="Admin")]
+
+        public async Task<IActionResult>GetArchieved()
         {
-            var products = await _productService.GetProductsByCategoryIdAsync(categoryId);
+            var archieved = await _productService.GetArchieveProductAsync();
+            return Ok(new ApiResponse<List<ProductResponse>>(200, "Archieved Products Fetched",archieved));
+        }
 
-            return Ok(new ApiResponse<List<ProductCategoryResponse>>(
-                200, $"Fetched {products.Count} products", products));
+
+        //restore products
+
+        [HttpPost("restore/{id}")]
+        public async Task<IActionResult> Restore (int id)
+        {
+            await _productService.RestoreAsync(id);
+
+            return Ok(new ApiResponse<string>(200, "Product Restored to active inventory success"));
         }
 
        
+
+
+
 
     }
 }

@@ -9,9 +9,11 @@
   <ItemGroup>
     <Folder Include="DomainServices\" />
     <Folder Include="ValueObjects\" />
+	  <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Mscc.GenerativeAI" Version="3.0.2" />
     <PackageReference Include="Razorpay" Version="3.3.2" />
   </ItemGroup>
 

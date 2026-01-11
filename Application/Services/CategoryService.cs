@@ -2,6 +2,7 @@
 using Application.Contracts.Services;
 using Application.DTOs.Category;
 using Domain.Entities;
+using Domain.Exceptions;
 
 namespace Application.Services
 {
@@ -9,10 +10,17 @@ namespace Application.Services
     {
         private readonly ICategoryRepository _categoryRepository;
 
+        private readonly IProductRepository _productRepository;
+
+        private readonly IUnitOfWork _unitOfWork;
+
         // FIX: Added missing constructor
-        public CategoryService(ICategoryRepository categoryRepository)
+        public CategoryService(ICategoryRepository categoryRepository,IProductRepository productRepository,IUnitOfWork unitOfWork)
         {
             _categoryRepository = categoryRepository;
+            _productRepository = productRepository;
+            _unitOfWork = unitOfWork;
+            
         }
 
         public async Task<List<CategoryResponse>> GetAllCategoriesAsync()
@@ -31,7 +39,6 @@ namespace Application.Services
             return new CategoryResponse { Id = category.Id, Name = category.Name };
         }
 
-        // FIX: Added missing Update logic
         public async Task<CategoryResponse> UpdateCategoryAsync(int id, string name)
         {
             var category = await _categoryRepository.GetByIdAsync(id);
@@ -42,15 +49,25 @@ namespace Application.Services
             return new CategoryResponse { Id = category.Id, Name = category.Name };
         }
 
-        // FIX: Added missing Delete logic
+       
         public async Task DeleteCategoryAsync(int id)
         {
-            var category = await _categoryRepository.GetByIdAsync(id);
-            if (category != null)
+            var category = await _categoryRepository.GetByIdAsync(id) ?? throw new NotFoundException("Category Not Found");
+
+            var products = await _productRepository.GetByCategoryAsync(category.Name);
+
+            if (products.Any())
             {
-                // Real-world check: You might want to check if products exist in this category first
-                await _categoryRepository.DeleteAsync(category);
+                foreach(var product in products)
+                {
+                    product.IsActive = false;
+                    await _productRepository.UpdateAsync(product);
+                }
             }
+
+            await _categoryRepository.DeleteAsync(category);
+
+            await _unitOfWork.CommitTransactionAsync();
         }
     }
 }

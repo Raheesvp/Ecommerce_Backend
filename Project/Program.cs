@@ -18,11 +18,13 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using Domain.Entities;
+using Microsoft.AspNetCore.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
 
 
-builder.Services.AddControllers();
+
 builder.Services.AddEndpointsApiExplorer();
 
 
@@ -101,9 +103,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5178").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+        policy.WithOrigins("http://localhost:5180").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     });
 });
+
+
+//chatbot
+
+builder.Services.AddHttpClient();
 
 
 builder.Services.AddControllers()
@@ -141,6 +148,14 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddScoped<IFileService,Infrastructure.Services.CloudinaryService>();
 
+builder.Services.AddSignalR();
+
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
+
+
+
+
 
 var app = builder.Build();
 
@@ -149,7 +164,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
 
 
 app.UseMiddleware<Middlewares>();
@@ -163,7 +177,9 @@ app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseStaticFiles();
 
+app.MapHub<NotificationHub>("/orderHub");
 
 app.MapControllers();
 

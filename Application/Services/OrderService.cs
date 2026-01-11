@@ -19,17 +19,26 @@ namespace Application.Services
         private readonly ICartRepository _cartRepository;
         private readonly IProductRepository _productRepository;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly INotificationService _notificationService;
+        private readonly IUserService _userService;
 
-        public OrderService(
+       public OrderService(
             IOrderRepository orderRepository,
             ICartRepository cartRepository,
             IProductRepository productRepository,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork,IUserService userService,
+            INotificationService  notificationService
+
+            
+            )
         {
             _orderRepository = orderRepository;
             _cartRepository = cartRepository;
             _productRepository = productRepository;
             _unitOfWork = unitOfWork;
+            _userService = userService;
+          
+            _notificationService = notificationService;
         }
 
         public async Task<int> PlaceOrderAsync(int userId, CreateOrderRequest request)
@@ -80,6 +89,9 @@ namespace Application.Services
 
                 // Commit creates the 'Pending' order in the database
                 await _unitOfWork.CommitTransactionAsync();
+
+                await _notificationService.OrderPlacedAsync("New Order Placed", order.Id);
+
 
                 return order.Id;
             }
@@ -289,6 +301,12 @@ namespace Application.Services
 
                     // 6. COMMIT ALL CHANGES
                     await _unitOfWork.CommitTransactionAsync();
+
+                    await _notificationService.OrderPlacedAsync(
+                $"Payment Confirmed: New order from {order.ReceiverName}",
+                order.Id
+            );
+
                     return true;
                 }
 
@@ -379,28 +397,72 @@ namespace Application.Services
 
         public async Task<DashBoardResponse> GetDashBoardAsync()
         {
-            var orders = await _unitOfWork.Orders.GetAllAsync();
-            var users = await _unitOfWork.Users.GetAllAsync();
-            var products = await _unitOfWork.Products.GetAllAsync();
+            var today = DateTime.UtcNow.Date;
+
+            // 1. Fetch Core Data from Repositories
+            var orders = await _orderRepository.GetAllAsync(); // Ensure OrderItems and User are Included in Repo
+            var users = await _userService.GetAllUsersAsync();
+            var products = await _productRepository.GetAllAsync();
+
+            // 2. Filter valid orders (Exclude Cancelled for revenue)
+            var validOrders = orders.Where(o => o.Status != OrderStatus.Cancelled).ToList();
+            var todayOrdersList = validOrders.Where(o => o.OrderDate.Date == today).ToList();
+
+            // 3. Generate Sales History (Last 7 Days)
+            var salesHistory = validOrders
+                .Where(o => o.OrderDate >= today.AddDays(-7))
+                .GroupBy(o => o.OrderDate.Date)
+                .Select(g => new SalesChartDTO
+                {
+                    Date = g.Key.ToString("yyyy-MM-dd"),
+                    Revenue = g.Sum(o => o.TotalAmount)
+                })
+                .OrderBy(g => g.Date)
+                .ToList();
+
+            // 4. Calculate Top Selling Products
+            var topSelling = validOrders
+                .SelectMany(o => o.OrderItems)
+                .GroupBy(oi => oi.Product.Name)
+                .Select(g => new RecentStockDTO
+                {
+                    ProductName = g.Key,
+                    Value = g.Sum(oi => oi.Quantity)
+                })
+                .OrderByDescending(x => x.Value)
+                .Take(5).ToList();
+
+            // 5. Calculate Low Stock Products
+            var lowStock = products
+                .Where(p => p.IsActive && p.Stock < 10)
+                .OrderBy(p => p.Stock)
+                .Take(5)
+                .Select(p => new ProductStockDTO
+                {
+                    ProductName = p.Name,
+                    Value = p.Stock
+                }).ToList();
 
             return new DashBoardResponse
             {
-                TotalRevenue = orders.Sum(o => o.TotalAmount),
+                TotalRevenue = validOrders.Sum(o => o.TotalAmount),
+                TodayRevenue = todayOrdersList.Sum(o => o.TotalAmount),
                 TotalOrders = orders.Count,
-                TotalUsers = users.Count(u => u.Role == Roles.User),
+                TodayOrders = todayOrdersList.Count,
+                TotalUsers = users.Count(u => u.Role == Roles.User.ToString()),
                 TotalProducts = products.Count,
-                RecentOrders = orders
-            .OrderByDescending(o => o.OrderDate)
-            .Take(5)
-            .Select(o => new RecentOrderDTO
-            {
-                OrderId = o.Id,
-                CustomerName = o.user?.FullName ?? "Unknown",
-                Amount = o.TotalAmount,
-                Status = o.Status.ToString()
-            }).ToList() // No 'Async' here because 'orders' is already a List
+                SalesHistory = salesHistory,
+                TopSellingProducts = topSelling,
+                LowStockProducts = lowStock,
+                RecentOrders = orders.OrderByDescending(o => o.OrderDate).Take(5).Select(o => new RecentOrderDTO
+                {
+                    OrderId = o.Id,
+                    CustomerName = o.user?.FullName ?? "Unknown",
+                    Amount = o.TotalAmount,
+                    Status = o.Status.ToString()
+                }).ToList()
             };
         }
-        }
-
     }
+    }
+ 

@@ -21,6 +21,8 @@ namespace Domain.Entities
 
         public bool IsFiltered { get; private set; }
 
+        public bool IsFeatured { get; set; }
+
         public DateTime CreatedAt { get; set; }
 
       

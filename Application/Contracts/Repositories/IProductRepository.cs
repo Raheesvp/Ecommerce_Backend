@@ -36,7 +36,8 @@ namespace Application.Contracts.Repositories
 
         Task<List<Product>> GetRelatedByCategoryAsync(string category, int excludeId, int limit);
 
-        Task<List<Product>> GetByCategoryIdAsync(int  categoryId);
+        Task<IEnumerable<Product>> GetAllArchievedAsync();
+        Task<Product?> GetByIdWithDeletedAsync(int id);
 
 
     }
