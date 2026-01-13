@@ -48,6 +48,7 @@ namespace Project.WebAPI.Controllers
         }
 
         [HttpGet("category/{categoryId:int}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetByCategory(int  categoryId)
         {
             var category = await _categroyRepo.GetByIdAsync(categoryId);

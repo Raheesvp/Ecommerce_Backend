@@ -13,6 +13,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="DinkToPdf" Version="1.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.ViewFeatures" Version="2.3.9" />
     <PackageReference Include="Mscc.GenerativeAI" Version="3.0.2" />
     <PackageReference Include="Razorpay" Version="3.3.2" />
   </ItemGroup>

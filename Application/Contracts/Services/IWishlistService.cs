@@ -13,5 +13,7 @@ namespace Application.Contracts.Services
         Task<WishlistActionEnum> ToggleWishlistAsync(int userId, int productId);
         Task ClearWishlistAsync(int userId);
         Task<List<WishlistItemResponse>> GetWishlistAsync(int userId);
+
+        Task RemoveFromWishlistAsync(int userId, int productId);
     }
 }

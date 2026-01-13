@@ -13,7 +13,7 @@ namespace Infrastructure.Hubs
 
         public async Task SendOrderNotification(string message, int orderId)
         {
-            await Clients.All.SendAsync("Receive Order Notification", message, orderId);
+            await Clients.All.SendAsync("ReceiveOrderNotification", message, orderId);
 
         }
 

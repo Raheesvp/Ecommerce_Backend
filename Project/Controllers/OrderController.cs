@@ -3,6 +3,7 @@ using Application.DTOs.Order;
 using Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Razorpay.Api;
 using System.Diagnostics;
 using System.Security.Claims;
 
@@ -15,9 +16,19 @@ namespace Project.WebAPI.Controllers
     {
         private readonly IOrderService _orderService;
 
-        public OrderController(IOrderService orderService)
+        private readonly INotificationService _notificationService;
+
+        private readonly IPdfService _pdfService;
+
+     
+
+        public OrderController(IOrderService orderService,INotificationService notificationService,IPdfService pdfService)
         {
             _orderService = orderService;
+            _notificationService = notificationService;
+            _pdfService = pdfService;
+         
+            
         }
 
         [HttpPost]
@@ -26,8 +37,10 @@ namespace Project.WebAPI.Controllers
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-            // Call the service
+          
             int orderId = await _orderService.PlaceOrderAsync(userId, request);
+
+            await _notificationService.OrderPlacedAsync($"New Order #{orderId} placed!", orderId);  
 
             return Ok(new ApiResponse<int>(200, "Order placed successfully!", orderId));
         }
@@ -49,7 +62,7 @@ namespace Project.WebAPI.Controllers
             }
             catch (Exception ex)
             {
-                // EF Core wraps the real error deep inside. This code finds it.
+               
                 var message = ex.Message;
                 if (ex.InnerException != null)
                 {
@@ -60,7 +73,7 @@ namespace Project.WebAPI.Controllers
                     }
                 }
 
-                // This will print the EXACT SQL error like "Column 'City' does not exist"
+            
                 Console.WriteLine("CRITICAL SQL ERROR: " + message);
                 return BadRequest(new { error = message });
             }
@@ -70,13 +83,13 @@ namespace Project.WebAPI.Controllers
         [Authorize(Roles = "User")]
         public async Task<IActionResult> GetMyOrders()
         {
-            // 1. Get the logged-in user's ID from the Token
+        
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-            // 2. Call Service
+         
             var orders = await _orderService.GetUserOrdersAsync(userId);
 
-            // 3. Return Result
+          
             return Ok(new ApiResponse<List<OrderResponse>>(200, "Orders fetched successfully", orders));
         }
 
@@ -152,20 +165,20 @@ namespace Project.WebAPI.Controllers
         [HttpPost("verify-payment")]
         public async Task<IActionResult> VerifyPayment([FromBody] PaymentVerificationRequest request)
         {
-            // 1. First, check if the order exists at all (helps with debugging)
+           
             var order = await _orderService.GetOrderByIdAsync(request.OrderId);
             if (order == null)
             {
                 return NotFound(new { message = $"Order with ID {request.OrderId} was not found." });
             }
 
-            // 2. Check if the status sent is actually 'Success' (ignoring case)
+           
             if (!string.Equals(request.Status, "success", StringComparison.OrdinalIgnoreCase))
             {
                 return BadRequest(new { message = "Payment was not successful. Status received: " + request.Status });
             }
 
-            // 3. Call the service to update database (Status, Reference, PaidOn)
+        
             var success = await _orderService.VerifyOrderPaymentAsync(request);
 
             if (success)
@@ -173,9 +186,34 @@ namespace Project.WebAPI.Controllers
                 return Ok(new { message = "Payment Successful and Order Updated" });
             }
 
-            // 4. If it reaches here, it's likely a database column issue (like the 'PaidOn' error)
+           
             return StatusCode(500, new { message = "Database error: Could not update the order record." });
+        }
+
+        [HttpGet("invoice/{orderId}")] 
+        public async Task<IActionResult> DownloadInvoice(int orderId)
+        {
+            try
+            {
+                var order = await _orderService.GetOrderByIdAsync(orderId);
+                if (order == null) return NotFound("Order not found");
+
+                var pdfBytes = await _pdfService.GenerateInvoicePdf(order);
+
+                if (pdfBytes == null || pdfBytes.Length == 0)
+                    return StatusCode(500, "Invoice generation failed (empty bytes)");
+
+                return File(pdfBytes, "application/pdf", $"WolfAthletix_Invoice_{orderId}.pdf");
+            }
+            catch (Exception ex)
+            {
+                
+                Console.WriteLine($"PDF GENERATION ERROR: {ex.Message}");
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
     }
 }
+
+
 

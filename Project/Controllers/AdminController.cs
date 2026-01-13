@@ -97,8 +97,9 @@ namespace Project.WebAPI.Controllers
 
         //category view     
 
-       
+
         [HttpGet("categories")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetCategories()
         {
             var result = await _categoryService.GetAllCategoriesAsync();

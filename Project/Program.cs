@@ -1,6 +1,10 @@
 using Application.Contracts.Repositories;
 using Application.Contracts.Services;
 using Application.Services;
+using DinkToPdf;
+using DinkToPdf.Contracts;
+using Domain.Entities;
+using Infrastructure.Hubs;
 using Infrastructure.Persistance;
 using Infrastructure.Persistance.Repository;
 using Infrastructure.Persistence;
@@ -9,6 +13,8 @@ using Infrastructure.Persistence.Repository;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -17,9 +23,6 @@ using Project.WebAPI;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Identity.UI.Services;
-using Domain.Entities;
-using Microsoft.AspNetCore.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -81,6 +84,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ),
             RoleClaimType = ClaimTypes.Role
         };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    path.StartsWithSegments("/orderHub"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
+
     });
 
 
@@ -103,7 +124,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5180").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+        policy.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     });
 });
 
@@ -152,7 +173,20 @@ builder.Services.AddSignalR();
 
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
+builder.Services.AddScoped<IPdfService, PdfService>();
 
+builder.Services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
+
+
+
+
+
+var context = new CustomAssemblyLoadContext();
+string dllPath = Path.Combine(Directory.GetCurrentDirectory(), "libwkhtmltox.dll");
+if (File.Exists(dllPath))
+{
+    context.LoadUnmanagedLibrary(dllPath);
+}
 
 
 
@@ -165,20 +199,22 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors("AllowFrontend");
 
 app.UseMiddleware<Middlewares>();
 app.UseHttpsRedirection();
 
 app.UseRouting();
 
-app.UseCors("AllowFrontend");
 
 
 app.UseAuthentication();
+app.UseMiddleware<UserBlockMiddleware>();
 app.UseAuthorization();
 
 app.UseStaticFiles();
 
+app.UseCors("AllowAll");
 app.MapHub<NotificationHub>("/orderHub");
 
 app.MapControllers();

@@ -11,12 +11,12 @@ namespace Application.Contracts.Services
 {
     public  interface IAuthService
     {
-        // 1. Contract for Registration
+     
         Task<User> RegisterAsync(RegisterRequest request);
 
-        // 2. Contract for Login
+ 
         Task<LoginResponse> LoginAsync(LoginRequest request);
-        // service interface for the refresh token 
+    
         Task<LoginResponse> RefreshTokenAsync(string  expiredAccessToken,string sessionRefreshToken);
 
         Task<bool> ResetPasswordAsync(ResetPasswordDTO resetDto);

@@ -59,6 +59,7 @@ namespace Application.Services
                 Name = p.Name,
                 Price = p.Price,
                 Category = p.Category,
+                Stock  = p.Stock,
                 Images = p.Images?.Select(img => img.Url).ToList() ?? new List<string>()
                 // Add other product fields you need
             }).ToList();
@@ -67,6 +68,16 @@ namespace Application.Services
         public async Task ClearWishlistAsync(int userId)
         {
             await _wishlistRepository.ClearAsync(userId);
+        }
+
+        public async Task RemoveFromWishlistAsync(int userId, int productId)
+        {
+            
+            bool exists = await _wishlistRepository.ExistsAsync(userId, productId);
+            if (exists)
+            {
+                await _wishlistRepository.RemoveAsync(userId, productId);
+            }
         }
     }
     

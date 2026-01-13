@@ -16,10 +16,13 @@ namespace Application.Services
         private readonly ICartRepository _cartRepository;
         private readonly IProductRepository _productRepository;
 
-        public CartService(ICartRepository cartRepository, IProductRepository productRepository)
+        private readonly IWishlistRepository _wishlistRepository;
+
+        public CartService(ICartRepository cartRepository, IProductRepository productRepository,IWishlistRepository wishlistRepository)
         {
             _cartRepository = cartRepository;
             _productRepository = productRepository;
+            _wishlistRepository = wishlistRepository;
         }
 
         public async Task<List<CartItemResponse>> GetCartAsync(int userId)
@@ -41,39 +44,39 @@ namespace Application.Services
 
         public async Task AddToCartAsync(int userId, int productId, int quantity)
         {
-            // 1. Get Product & Validate
+            // 1. Validation Logic
             var product = await _productRepository.GetByIdAsync(productId);
-
             if (product == null)
                 throw new NotFoundException("Product Not Found");
 
-          
             if (product.Stock < quantity)
-            {
                 throw new InvalidOperationException($"Not Enough Stock. Only {product.Stock} left");
-            }
 
+            // 2. Business Logic: Cart Management
             var existingItem = await _cartRepository.GetCartItemAsync(userId, productId);
 
             if (existingItem != null)
             {
-                
-
-
                 if (product.Stock < (existingItem.Quantity + quantity))
                 {
                     throw new InvalidOperationException($"Cannot Add More. You have {existingItem.Quantity} in cart and we only have {product.Stock} in stock");
                 }
 
-                
                 existingItem.Quantity += quantity;
                 await _cartRepository.UpdateItemAsync(existingItem);
             }
             else
             {
-             
                 var newItem = new CartEntity(userId, productId, quantity);
                 await _cartRepository.AddItemAsync(newItem);
+            }
+
+            // 3. TRANSFER LOGIC: Remove from Wishlist
+            // Since the product is now in the Cart, it should no longer be in the "Save for Later" list.
+            var isInWishlist = await _wishlistRepository.ExistsAsync(userId, productId);
+            if (isInWishlist)
+            {
+                await _wishlistRepository.RemoveAsync(userId, productId);
             }
         }
         public async Task UpdateQuantityAsync(int userId, UpdateCartItemRequest request)

@@ -116,14 +116,14 @@ namespace Project.WebAPI.Controllers
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDTO reset)
         {
-            // 1. Check if the DTO validation (Regex/Required) failed
+         
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
                 return BadRequest(new ApiResponse<IEnumerable<string>>(400, "Validation Failed", errors));
             }
 
-            // 2. Business logic check for password matching
+           
             if (reset.NewPassword != reset.ConfirmPassword)
             {
                 return BadRequest(new ApiResponse<string>(400, "Passwords do not match"));
@@ -134,7 +134,7 @@ namespace Project.WebAPI.Controllers
 
             if (!isSuccess)
             {
-                // This usually means the Token was wrong, Email didn't exist, or it Expired
+                
                 return BadRequest(new ApiResponse<string>(400, "Invalid or Expired Token"));
             }
 

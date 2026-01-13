@@ -43,7 +43,7 @@ namespace Application.Services
 
         public async Task<int> PlaceOrderAsync(int userId, CreateOrderRequest request)
         {
-            // Start transaction to ensure Order and OrderItems are created atomically
+            
             await _unitOfWork.BeginTransactionAsync();
 
             try
@@ -60,7 +60,7 @@ namespace Application.Services
                     var product = await _productRepository.GetByIdAsync(cartItem.ProductId);
                     if (product == null) throw new Exception($"Product with ID {cartItem.ProductId} Not Found");
 
-                    // Validate stock availability
+                  
                     if (product.Stock < cartItem.Quantity)
                         throw new InvalidOperationException($"Product '{product.Name}' is out of stock.");
 
@@ -87,7 +87,7 @@ namespace Application.Services
 
                 await _orderRepository.CreateAsync(order);
 
-                // Commit creates the 'Pending' order in the database
+               
                 await _unitOfWork.CommitTransactionAsync();
 
                 await _notificationService.OrderPlacedAsync("New Order Placed", order.Id);
@@ -97,16 +97,15 @@ namespace Application.Services
             }
             catch (Exception)
             {
-                // If anything fails, undo the order creation
+               
                 await _unitOfWork.RollbackTransactionAsync();
-                throw; // Re-throw to let the Controller handle the error message
+                throw; 
             }
         }
 
         public async Task<bool> UpdateOrderStatusAsync(int orderId, OrderStatus newStatus)
         {
-            // 1. Ensure your Repository GetById explicitly includes OrderItems
-            // If you don't Include them, the stock restoration logic below will be ignored.
+            
             var order = await _orderRepository.GetByIdAsync(orderId);
             if (order == null) return false;
 
@@ -129,8 +128,7 @@ namespace Application.Services
                         throw new InvalidOperationException("Cannot cancel an order that has already been shipped.");
                     }
 
-                    // Restore Stock logic
-                    // Ensure OrderItems are actually loaded into memory here
+                    
                     if (order.OrderItems != null && order.OrderItems.Any())
                     {
                         foreach (var item in order.OrderItems)
@@ -146,24 +144,22 @@ namespace Application.Services
                 }
                 else
                 {
-                    // Strict step-by-step logic
+                   
                     if ((int)newStatus != (int)currentStatus + 1)
                     {
                         throw new InvalidOperationException($"Cannot move status from {currentStatus} directly to {newStatus}.");
                     }
                 }
 
-                // Apply changes to the object in RAM
+                
                 order.Status = newStatus;
 
                 if (newStatus == OrderStatus.Shipped)
                     order.ShippingDate = DateTime.UtcNow;
 
-                // 2. CRITICAL FIX: Explicitly mark the order as Modified in the repository
-                // This ensures EF Core generates the 'UPDATE Orders SET Status = ...' SQL
                 await _orderRepository.UpdateAsync(order);
 
-                // 3. Persist everything to SQL Server
+               
                 await _unitOfWork.CommitTransactionAsync();
 
                 return true;
@@ -202,7 +198,6 @@ namespace Application.Services
                 Id = o.Id,
                 OrderDate = o.OrderDate,
                 TotalAmount = o.TotalAmount,
-                // FIX: Convert Enum to String for DTO
                 Status = ((int)o.Status).ToString(),
                 ReceiverName = o.ReceiverName,
                 ShippingAddress = o.ShippingAddress,
@@ -229,7 +224,7 @@ namespace Application.Services
                 if (order == null) throw new KeyNotFoundException("Order not found");
                 if (order.UserId != userId) throw new UnauthorizedAccessException("Not authorized.");
 
-                // FIX: order.Status is already Enum
+              
                 OrderStatus currentStatus = order.Status;
 
                 if (currentStatus != OrderStatus.Pending && currentStatus != OrderStatus.Processing)
@@ -247,7 +242,7 @@ namespace Application.Services
                     }
                 }
 
-                // FIX: Assigned Enum directly
+               
                 order.Status = OrderStatus.Cancelled;
                 await _orderRepository.UpdateAsync(order);
                 await _unitOfWork.CommitTransactionAsync();
@@ -266,14 +261,13 @@ namespace Application.Services
 
             try
             {
-                // 1. Get the order with its items
+                
                 var order = await _orderRepository.GetByIdAsync(request.OrderId);
                 if (order == null) return false;
 
-                // 2. Only process if payment was successful
+                
                 if (request.Status != null && request.Status.Equals("success", StringComparison.OrdinalIgnoreCase))
                 {
-                    // 3. REDUCE STOCK
                     foreach (var item in order.OrderItems)
                     {
                         var product = await _productRepository.GetByIdAsync(item.ProductId);
@@ -288,38 +282,35 @@ namespace Application.Services
                         await _productRepository.UpdateAsync(product);
                     }
 
-                    // 4. Update Order Details
+                   
                     order.Status = OrderStatus.Processing;
                     order.PaymentReference = request.TransactionId;
                     order.PaidOn = DateTime.UtcNow;
 
                     await _orderRepository.UpdateAsync(order);
 
-                    // 5. CRITICAL: Clear the user's cart
-                    // This ensures the items disappear from the UI cart after payment
+                 
                     await _cartRepository.ClearCartAsync(order.UserId);
 
-                    // 6. COMMIT ALL CHANGES
                     await _unitOfWork.CommitTransactionAsync();
 
                     await _notificationService.OrderPlacedAsync(
-                $"Payment Confirmed: New order from {order.ReceiverName}",
+                $"New order from {order.ReceiverName}",
                 order.Id
             );
 
                     return true;
                 }
 
-                // If payment failed at the gateway, we do nothing. 
-                // Items stay in the cart so user can try again.
+         
                 return false;
             }
             catch (Exception ex)
             {
-                // If anything fails (Database error, Cart error, Stock error), UNDO EVERYTHING
+              
                 await _unitOfWork.RollbackTransactionAsync();
 
-                // Log the error for debugging
+               
                 Console.WriteLine($"Payment Verification Error: {ex.Message}");
                 throw;
             }
@@ -373,8 +364,8 @@ namespace Application.Services
                     ProductId = product.Id,
                     ProductName = product.Name,
                     Quantity = request.Quantity,
-                    UnitPrice = product.Price, // Fixed
-                    Price = totalAmount        // Fixed
+                    UnitPrice = product.Price, 
+                    Price = totalAmount        
                 }
             }
                 };
@@ -387,7 +378,7 @@ namespace Application.Services
             catch (Exception ex)
             {
                 await _unitOfWork.RollbackTransactionAsync();
-                // This will now show the actual inner message in your logs
+           
                 var innerMsg = ex.InnerException?.Message ?? ex.Message;
                 throw new Exception($"Direct Buy Failed: {innerMsg}");
             }
@@ -399,16 +390,16 @@ namespace Application.Services
         {
             var today = DateTime.UtcNow.Date;
 
-            // 1. Fetch Core Data from Repositories
-            var orders = await _orderRepository.GetAllAsync(); // Ensure OrderItems and User are Included in Repo
+            
+            var orders = await _orderRepository.GetAllAsync(); 
             var users = await _userService.GetAllUsersAsync();
             var products = await _productRepository.GetAllAsync();
 
-            // 2. Filter valid orders (Exclude Cancelled for revenue)
+
             var validOrders = orders.Where(o => o.Status != OrderStatus.Cancelled).ToList();
             var todayOrdersList = validOrders.Where(o => o.OrderDate.Date == today).ToList();
 
-            // 3. Generate Sales History (Last 7 Days)
+          
             var salesHistory = validOrders
                 .Where(o => o.OrderDate >= today.AddDays(-7))
                 .GroupBy(o => o.OrderDate.Date)

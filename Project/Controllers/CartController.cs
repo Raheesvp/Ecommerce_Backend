@@ -16,9 +16,12 @@ namespace Project.WebAPI.Controllers
     {
         private readonly ICartService _cartService;
 
-        public CartController(ICartService cartService)
+        private readonly IWishlistService _wishlistService;
+
+        public CartController(ICartService cartService,IWishlistService wishlistService)
         {
             _cartService = cartService;
+            _wishlistService = wishlistService;
         }
 
         [HttpGet]
@@ -36,6 +39,8 @@ namespace Project.WebAPI.Controllers
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
             await _cartService.AddToCartAsync(userId, productId, quantity);
+
+            await _wishlistService.RemoveFromWishlistAsync(userId, productId);
 
           
             return Ok(ApiResponse<string>.SuccessResponse("Item added to cart", 200));
