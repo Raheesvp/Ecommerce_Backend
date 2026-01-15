@@ -3,6 +3,7 @@ using Application.Contracts.Services;
 using Application.DTOs; 
 using Application.DTOs.Category;
 using Application.DTOs.Product;
+using Application.DTOs.Reviews;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,16 +21,20 @@ namespace Project.WebAPI.Controllers
 
         private readonly INotificationService _notificationService;
 
+        private readonly IReviewService _reviewService;
+
         
 
 
 
         // CLEAN CONSTRUCTOR: Only one service needed now!
-        public ProductController(IProductService productService, ICategoryRepository categoryRepository,INotificationService notificationService)
+        public ProductController(IProductService productService, ICategoryRepository categoryRepository,INotificationService notificationService,IReviewService reviewService)
         {
             _productService = productService;
             _categroyRepo = categoryRepository;
             _notificationService = notificationService;
+            _reviewService = reviewService;
+            
            
         }
 
@@ -119,6 +124,26 @@ namespace Project.WebAPI.Controllers
         {
             var related = await _productService.GetRelatedProductsAsync(productId);
             return Ok(new ApiResponse<List<ProductResponse>>(200, "Success", related));
+        }
+
+        [Authorize]
+        [HttpPost("submit-review")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> SubmitReview([FromForm] CreateReviewRequest request)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            var reviewId = await _reviewService.AddReviewAsync(userId, request);
+            return Ok(new { Message = "Review Deployed", ReviewId = reviewId });
+        }
+
+        [HttpGet("{productId:int}/reviews")]
+        [AllowAnonymous] // Everyone should see reviews
+        public async Task<IActionResult> GetReviews(int productId)
+        {
+            
+            var reviews = await _reviewService.GetProductReviewsAsync(productId);
+
+            return Ok(new ApiResponse<List<ReviewResponse>>(200, "Review Fetched", reviews));
         }
 
         //get archieved products

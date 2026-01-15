@@ -6,6 +6,7 @@ using Microsoft.Identity.Client;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -58,10 +59,16 @@ namespace Infrastructure.Persistance.Repository
 
         public async Task UpdateAsync(Order order)
         {
-            //_context.Orders.Update(order);
+         
             _context.Entry(order).State = EntityState.Modified;
-            //await _context.SaveChangesAsync();
+         
             await Task.CompletedTask;
+        }
+
+        public async Task<bool> AnyAsync(Expression<Func<Order, bool>> predicate)
+        {
+            // This uses Entity Framework's built-in AnyAsync
+            return await _context.Orders.AnyAsync(predicate);
         }
 
     }

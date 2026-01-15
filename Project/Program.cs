@@ -1,3 +1,4 @@
+
 using Application.Contracts.Repositories;
 using Application.Contracts.Services;
 using Application.Services;
@@ -22,6 +23,8 @@ using Microsoft.OpenApi.Models;
 using Project.WebAPI;
 using System.Security.Claims;
 using System.Text;
+
+
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -112,10 +115,7 @@ builder.Services.AddAuthorization();
 
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        sql => sql.MigrationsAssembly("Infrastructure")
-    )
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
 //connect with frontend 
@@ -161,6 +161,10 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 //builder.Services.AddScoped<IEmailSender,EmailService>();
 
+builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+
+builder.Services.AddScoped<IReviewService, ReviewService>();
+
 builder.Services.AddScoped<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, Infrastructure.Services.EmailService>();
 
 
@@ -181,6 +185,20 @@ builder.Services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new 
 
 
 
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+);
+
+
+
+
+
+//// In Program.cs
+//builder.Services.AddMediatR(cfg => {
+//    cfg.RegisterServicesFromAssembly(typeof(Application.Reviews.CreateReviewCommand).Assembly);
+//});
+
+
 var context = new CustomAssemblyLoadContext();
 string dllPath = Path.Combine(Directory.GetCurrentDirectory(), "libwkhtmltox.dll");
 if (File.Exists(dllPath))
@@ -199,20 +217,20 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors("AllowFrontend");
 
 app.UseMiddleware<Middlewares>();
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseCors("AllowFrontend");
 
 
 app.UseAuthentication();
 app.UseMiddleware<UserBlockMiddleware>();
 app.UseAuthorization();
 
-app.UseStaticFiles();
 
 app.UseCors("AllowAll");
 app.MapHub<NotificationHub>("/orderHub");

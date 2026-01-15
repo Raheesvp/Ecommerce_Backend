@@ -34,6 +34,8 @@ public class Order : BaseEntity
     public virtual User user { get; private set; }
     public virtual ICollection<OrderItem> OrderItems { get; set; }
 
+
+
     // Updated Constructor
     public Order(int userId, string receiverName, string mobileNumber, string shippingAddress, string city, string state, string pinNumber, decimal totalAmount)
     {

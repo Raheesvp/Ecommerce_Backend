@@ -1,4 +1,5 @@
-﻿using Domain.Entities;
+﻿
+using Domain.Entities;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,6 +34,13 @@ namespace Infrastructure.Persistence
         //cratea table for category 
 
         public DbSet<CategoryEntity> CategoryEntities { get; set; }
+
+        //public DbSet<Review> Reviews { get; set; }
+
+        public DbSet<Review> Reviews { get; set; }
+
+        public DbSet<ReviewImage> ReviewImages { get; set; }
+
 
 
 
@@ -69,8 +77,14 @@ namespace Infrastructure.Persistence
                 .Property(oi => oi.UnitPrice)
                 .HasColumnType("decimal(18,2)");
 
-            // 3. Resolve Relationship Warning
-            // Apply the same query filter to related entities to ensure consistency
+
+            modelBuilder.Entity<ReviewImage>()
+                 .HasOne(ri => ri.Review)
+                 .WithMany(r => r.ReviewImages)
+                 .HasForeignKey(ri => ri.ReviewId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+
             modelBuilder.Entity<Order>().HasQueryFilter(o => !o.user.IsDeleted);
 
 
