@@ -67,8 +67,25 @@ namespace Infrastructure.Persistance.Repository
 
         public async Task<bool> AnyAsync(Expression<Func<Order, bool>> predicate)
         {
-            // This uses Entity Framework's built-in AnyAsync
+           
             return await _context.Orders.AnyAsync(predicate);
+        }
+
+        public async Task<int> AddReturnRequestAsync(ReturnRequest returnRequest)
+        {
+            await _context.ReturnRequests.AddAsync(returnRequest);
+            await _context.SaveChangesAsync();
+            return returnRequest.Id;
+        }
+
+        public async Task<List<ReturnRequest>> GetAllReturnRequestsAsync()
+        {
+           
+            return await _context.ReturnRequests
+                .Include(r => r.Product)
+                .Include(r => r.Order)
+                .OrderByDescending(r => r.RequestedAt)
+                .ToListAsync();
         }
 
     }

@@ -41,6 +41,10 @@ namespace Infrastructure.Persistence
 
         public DbSet<ReviewImage> ReviewImages { get; set; }
 
+        //database table for return request
+
+        public DbSet<ReturnRequest> ReturnRequests { get; set; }
+
 
 
 
@@ -83,6 +87,9 @@ namespace Infrastructure.Persistence
                  .WithMany(r => r.ReviewImages)
                  .HasForeignKey(ri => ri.ReviewId)
                  .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ReturnRequest>()
+                .HasIndex(r => new { r.OrderId, r.ProductId }).IsUnique();
 
 
             modelBuilder.Entity<Order>().HasQueryFilter(o => !o.user.IsDeleted);

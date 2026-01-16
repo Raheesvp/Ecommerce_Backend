@@ -38,6 +38,13 @@ namespace Application.Contracts.Services
         Task<OrderResponse> ProcessDirectBuyAsync(int userId, DirectBuyRequest request);
 
         Task<DashBoardResponse> GetDashBoardAsync();
+
+        Task<int> CreateReturnRequestAsync(int userId, int orderId, CreateReturnRequest request);
+        Task<List<ReturnResponse>> GetAllReturnRequestsAsync();
+
+        Task<int> AddReturnRequestAsync(ReturnRequest request);
+
+
     }
 
 

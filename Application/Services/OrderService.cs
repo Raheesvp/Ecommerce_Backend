@@ -454,6 +454,54 @@ namespace Application.Services
                 }).ToList()
             };
         }
+
+        public async Task<int> CreateReturnRequestAsync(int userId, int orderId, CreateReturnRequest request)
+        {
+            
+            var order = await _orderRepository.GetByIdAsync(orderId);
+            if (order == null || order.UserId != userId)
+                throw new Exception("Order not found.");
+
+            
+            if (order.Status != OrderStatus.Delivered)
+                throw new Exception("You can only return items that have been delivered.");
+
+           
+            var returnRequest = new ReturnRequest
+            {
+                OrderId = order.Id,
+                ProductId = request.ProductId,
+                UserId = userId.ToString(),
+                Reason = request.Reason,
+                Description = request.Description,
+                Status = ReturnStatus.Pending
+            };
+
+        
+            return await _orderRepository.AddReturnRequestAsync(returnRequest);
+        }
+
+        public async Task<int> AddReturnRequestAsync(ReturnRequest returnRequest)
+        {
+           
+            return await _orderRepository.AddReturnRequestAsync(returnRequest);
+        }
+
+        public async Task<List<ReturnResponse>> GetAllReturnRequestsAsync()
+        {
+           
+            var returns = await _orderRepository.GetAllReturnRequestsAsync();
+
+            return returns.Select(r => new ReturnResponse
+            {
+                Id = r.Id,
+                OrderId = r.OrderId,
+                ProductName = r.Product?.Name ?? "Unknown Product",
+                Reason = r.Reason,
+                Status = r.Status.ToString(),
+                RequestedAt = r.RequestedAt
+            }).ToList();
+        }
     }
     }
  

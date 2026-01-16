@@ -28,6 +28,10 @@ namespace Application.Contracts.Repositories
         Task<List<Order>> GetAllAsync();
 
         Task<bool> AnyAsync(Expression<Func<Order, bool>> predicate);
+
+        Task<int> AddReturnRequestAsync(ReturnRequest request);
+
+        Task<List<ReturnRequest>> GetAllReturnRequestsAsync();
     }
 
 

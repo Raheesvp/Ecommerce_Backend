@@ -212,6 +212,34 @@ namespace Project.WebAPI.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+
+        
+        [HttpPost("{id}/return")]
+        [Authorize(Roles = "User")]
+        public async Task<IActionResult> ReturnOrder(int id, [FromBody] CreateReturnRequest request)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            // Call the service
+            var returnId = await _orderService.CreateReturnRequestAsync(userId, id, request);
+
+            return Ok(new ApiResponse<int>(200, "Return request submitted!", returnId));
+        }
+
+        [HttpGet("returns/all")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllReturnRequests()
+        {
+            try
+            {
+                var returns = await _orderService.GetAllReturnRequestsAsync();
+                return Ok(new ApiResponse<List<ReturnResponse>>(200, "All return requests retrieved", returns));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(500, ex.Message));
+            }
+        }
     }
 }
 
