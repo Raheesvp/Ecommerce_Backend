@@ -31,12 +31,12 @@ jobs:
       - name: Run Tests
         run: dotnet test Project.sln -c Release --no-build
 
-      - name: Debug repository structure
+      - name: FORCE DEBUG – SHOW REPO STRUCTURE
         run: |
-          echo "=== ROOT ==="
-          ls
-          echo "=== RECURSIVE ==="
-          find . -name "*.csproj"
+          pwd
+          echo "===== FULL TREE ====="
+          ls -R
+
 
       - name: Publish
         run: dotnet publish Project/Project.WebAPI/Project.WebAPI.csproj -c Release -o publish
