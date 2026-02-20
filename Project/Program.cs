@@ -245,7 +245,7 @@ app.UseAuthorization();
 // -------------------- Endpoints --------------------
 app.MapHub<NotificationHub>("/orderHub");
 app.MapControllers();
-app.MapGet("/health", () => Results.Ok("Healthy"));
+app.MapGet("/api/health", () => Results.Ok("Healthy"));
 
 
 // -------------------- Run --------------------
