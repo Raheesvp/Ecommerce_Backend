@@ -89,129 +89,119 @@ namespace Application.Services
 
         public async Task CreateAsync(CreateProductRequest request)
         {
-            // 1. Basic Validations
-            var name = request.Name?.Trim();
-            var categoryName = request.Category.ToString().Trim();
-            var description = request.Description?.Trim();
-
-            if (string.IsNullOrWhiteSpace(name))
-                throw new ValidationException("Product name is required");
-
-            if (string.IsNullOrWhiteSpace(categoryName))
-                throw new ValidationException("Category name is required");
-
-            if (await _repository.ExistByNameAsync(name))
-                throw new InvalidOperationException("Product already exists");
-
-            if (request.OriginalPrice <= request.Price)
-                throw new ValidationException("OriginalPrice must be greater than Price");
-
-            // 2. Resolve Category (String name to Integer ID)
-            // We look up the category. If it doesn't exist, we create a new one.
-            var categoryEntity = await _categoryRepository.GetByNameAsync(categoryName);
-            int finalCategoryId;
-
-            if (categoryEntity == null)
+            await _unitOfWork.ExecuteAsync(async () =>
             {
-                var newCategory = new CategoryEntity { Name = categoryName };
-                var createdCategory = await _categoryRepository.AddAsync(newCategory);
-                finalCategoryId = createdCategory.Id;
-            }
-            else
-            {
-                finalCategoryId = categoryEntity.Id;
-            }
+                var name = request.Name?.Trim();
+                var categoryName = request.Category.ToString().Trim();
+                var description = request.Description?.Trim();
 
-            // 3. Handle File Uploads
-            var imageUrls = new List<string>();
-            if (request.Images != null && request.Images.Any())
-            {
-                foreach (var file in request.Images)
+                if (string.IsNullOrWhiteSpace(name))
+                    throw new ValidationException("Product name is required");
+
+                if (string.IsNullOrWhiteSpace(categoryName))
+                    throw new ValidationException("Category name is required");
+
+                if (await _repository.ExistByNameAsync(name))
+                    throw new InvalidOperationException("Product already exists");
+
+                if (request.OriginalPrice <= request.Price)
+                    throw new ValidationException("OriginalPrice must be greater than Price");
+
+                var categoryEntity = await _categoryRepository.GetByNameAsync(categoryName);
+                int finalCategoryId;
+
+                if (categoryEntity == null)
                 {
-                    var url = await _fileService.UploadAsync(file);
-                    imageUrls.Add(url);
+                    var newCategory = new CategoryEntity { Name = categoryName };
+                    var createdCategory = await _categoryRepository.AddAsync(newCategory);
+                    finalCategoryId = createdCategory.Id;
                 }
-            }
+                else
+                {
+                    finalCategoryId = categoryEntity.Id;
+                }
 
-            // Determine Main Image
-            string mainImageUrl = imageUrls.FirstOrDefault() ?? string.Empty;
+                var imageUrls = new List<string>();
+                if (request.Images != null && request.Images.Any())
+                {
+                    foreach (var file in request.Images)
+                    {
+                        var url = await _fileService.UploadAsync(file);
+                        imageUrls.Add(url);
+                    }
+                }
 
-            // 4. Initialize Product with CategoryId (int)
-            // Note: I changed request.Category to finalCategoryId
-            var product = new Product(
-                request.Name,
-                request.Price,
-                request.OriginalPrice,
-                request.Stock,
-                categoryName,
-                request.Description,
-                request.Offer,
-                request.Rating,
-                request.Featured,
-                mainImageUrl
-            );
+                string mainImageUrl = imageUrls.FirstOrDefault() ?? string.Empty;
 
-            // 5. Add Gallery Images
-            foreach (var url in imageUrls)
-            {
-                product.AddImage(url);
-            }
+                var product = new Product(
+                    request.Name,
+                    request.Price,
+                    request.OriginalPrice,
+                    request.Stock,
+                    categoryName,
+                    request.Description,
+                    request.Offer,
+                    request.Rating,
+                    request.Featured,
+                    mainImageUrl
+                );
 
-            // 6. Save and Commit
-            await _repository.AddAsync(product);
-            await _unitOfWork.CommitTransactionAsync();
+                foreach (var url in imageUrls)
+                {
+                    product.AddImage(url);
+                }
+
+                await _repository.AddAsync(product);
+            });
         }
+
 
         public async Task UpdateAsync(int id, UpdateProductRequest request)
         {
-            // 1. Fetch the product - Ensure it is NOT AsNoTracking in the repository
-            var product = await _repository.GetByIdAsync(id)
-                ?? throw new NotFoundException("Product not found");
-
-            // 2. Handle Images
-            string? newMainImageUrl = product.ImageUrl;
-
-            if (request.Images != null && request.Images.Any())
+            await _unitOfWork.ExecuteAsync(async () =>
             {
-                foreach (var file in request.Images)
+                var product = await _repository.GetByIdAsync(id)
+                    ?? throw new NotFoundException("Product not found");
+
+                string? newMainImageUrl = product.ImageUrl;
+
+                if (request.Images != null && request.Images.Any())
                 {
-                    var uploadedUrl = await _fileService.UploadAsync(file);
-                    product.AddImage(uploadedUrl);
-                    newMainImageUrl = uploadedUrl;
+                    foreach (var file in request.Images)
+                    {
+                        var uploadedUrl = await _fileService.UploadAsync(file);
+                        product.AddImage(uploadedUrl);
+                        newMainImageUrl = uploadedUrl;
+                    }
                 }
-            }
 
-            // 3. Update the Entity Properties
-            // Check if request.Stock actually has a value from the frontend
-            product.Update(
-                request.Name,
-                request.Price,
-                request.Stock,
-                request.Category,
-                request.Description,
-                newMainImageUrl,
-                request.Offer,
-                request.Featured);
+                product.Update(
+                    request.Name,
+                    request.Price,
+                    request.Stock,
+                    request.Category,
+                    request.Description,
+                    newMainImageUrl,
+                    request.Offer,
+                    request.Featured);
 
-            // 4. SOLUTION: Mark as Modified
-            // This tells EF Core to generate the SQL: UPDATE Products SET Stock = @p0...
-            await _repository.UpdateAsync(product);
-
-            // 5. Commit the Transaction
-            // If this method doesn't call _context.SaveChangesAsync(), nothing happens in DB
-            await _unitOfWork.CommitTransactionAsync();
+                await _repository.UpdateAsync(product);
+            });
         }
+
         public async Task DeleteAsync(int id)
         {
-            var product = await _repository.GetByIdAsync(id)
-                ?? throw new NotFoundException("Product not found");
+            await _unitOfWork.ExecuteAsync(async () =>
+            {
+                var product = await _repository.GetByIdAsync(id)
+                    ?? throw new NotFoundException("Product not found");
 
-            product.IsActive = false;
-            await _repository.UpdateAsync(product);
-
-            await _unitOfWork.CommitTransactionAsync();
+                product.IsActive = false;
+                await _repository.UpdateAsync(product);
+            });
         }
-        
+
+
 
         //getting the filtered products
 
@@ -319,12 +309,15 @@ namespace Application.Services
 
         public async Task RestoreAsync(int id)
         {
-            var product = await _repository.GetByIdWithDeletedAsync(id) 
-                ?? throw new NotFoundException("Product not found in archieve");
+            await _unitOfWork.ExecuteAsync(async () =>
+            {
+                var product = await _repository.GetByIdWithDeletedAsync(id)
+                    ?? throw new NotFoundException("Product not found in archive");
 
-            product.IsActive = true;
-            await _repository.UpdateAsync(product);
-            await _unitOfWork.CommitTransactionAsync();
+                product.IsActive = true;
+                await _repository.UpdateAsync(product);
+            });
         }
+
     }
 }

@@ -49,25 +49,28 @@ namespace Application.Services
             return new CategoryResponse { Id = category.Id, Name = category.Name };
         }
 
-       
+
         public async Task DeleteCategoryAsync(int id)
         {
-            var category = await _categoryRepository.GetByIdAsync(id) ?? throw new NotFoundException("Category Not Found");
-
-            var products = await _productRepository.GetByCategoryAsync(category.Name);
-
-            if (products.Any())
+            await _unitOfWork.ExecuteAsync(async () =>
             {
-                foreach(var product in products)
+                var category = await _categoryRepository.GetByIdAsync(id)
+                    ?? throw new NotFoundException("Category Not Found");
+
+                var products = await _productRepository.GetByCategoryAsync(category.Name);
+
+                if (products.Any())
                 {
-                    product.IsActive = false;
-                    await _productRepository.UpdateAsync(product);
+                    foreach (var product in products)
+                    {
+                        product.IsActive = false;
+                        await _productRepository.UpdateAsync(product);
+                    }
                 }
-            }
 
-            await _categoryRepository.DeleteAsync(category);
-
-            await _unitOfWork.CommitTransactionAsync();
+                await _categoryRepository.DeleteAsync(category);
+            });
         }
+
     }
 }

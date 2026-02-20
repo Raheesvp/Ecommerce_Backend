@@ -12,37 +12,35 @@ namespace Application.Contracts.Services
 {
     public  interface IOrderService
     {
+        // USER – PLACE ORDER
         Task<int> PlaceOrderAsync(int userId, CreateOrderRequest orderRequest);
 
+        // USER – VIEW ORDERS
         Task<List<OrderResponse>> GetUserOrdersAsync(int userId);
-
-        //get the order by id 
-
         Task<OrderResponse> GetOrderByIdAsync(int orderId);
 
-        //admin sees the orders 
-
+        // ADMIN – VIEW ORDERS
         Task<List<OrderResponse>> GetAllOrdersAsync();
 
-        //admin can set the order status 
-
+        // ADMIN – UPDATE ORDER STATUS
         Task<bool> UpdateOrderStatusAsync(int orderId, OrderStatus newStatus);
 
-        //Task UpdateAsync(Order order);
-
+        // USER – CANCEL ORDER
         Task<bool> CancelOrderAsync(int orderId, int userId);
 
+        // PAYMENT
         Task<bool> VerifyOrderPaymentAsync(PaymentVerificationRequest request);
 
-        
+        // DIRECT BUY (WITHOUT CART)
         Task<OrderResponse> ProcessDirectBuyAsync(int userId, DirectBuyRequest request);
 
+        // ADMIN – DASHBOARD
         Task<DashBoardResponse> GetDashBoardAsync();
 
+        // RETURNS
         Task<int> CreateReturnRequestAsync(int userId, int orderId, CreateReturnRequest request);
-        Task<List<ReturnResponse>> GetAllReturnRequestsAsync();
-
         Task<int> AddReturnRequestAsync(ReturnRequest request);
+        Task<List<ReturnResponse>> GetAllReturnRequestsAsync();
 
 
     }

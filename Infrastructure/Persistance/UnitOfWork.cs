@@ -1,84 +1,56 @@
 ﻿using Application.Contracts.Repositories;
 using Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Infrastructure.Persistance
 {
     public class UnitOfWork : IUnitOfWork
     {
         private readonly AppDbContext _context;
-        private IDbContextTransaction? _currentTransaction;
 
+        public IOrderRepository Orders { get; }
+        public IProductRepository Products { get; }
+        public IUserRepository Users { get; }
 
-        public IOrderRepository Orders { get; private set; }
-        public IProductRepository Products { get; private set; }
-
-        public IUserRepository Users { get; private set; }
-
-        public UnitOfWork(AppDbContext context,IOrderRepository orderRepository,IProductRepository productRepository,IUserRepository userRepository)
+        public UnitOfWork(
+            AppDbContext context,
+            IOrderRepository orderRepository,
+            IProductRepository productRepository,
+            IUserRepository userRepository)
         {
             _context = context;
-
             Orders = orderRepository;
             Products = productRepository;
             Users = userRepository;
         }
 
-        public async Task BeginTransactionAsync()
+        public async Task ExecuteAsync(Func<Task> action)
         {
-            if (_currentTransaction != null) return;
-            _currentTransaction = await _context.Database.BeginTransactionAsync();
-        }
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-        public async Task CommitTransactionAsync()
-        {
-            try
+            await strategy.ExecuteAsync(async () =>
             {
-                await _context.SaveChangesAsync();
-                if (_currentTransaction != null)
+                await using var transaction =
+                    await _context.Database.BeginTransactionAsync();
+
+                try
                 {
-                    await _currentTransaction.CommitAsync();
+                    await action();
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
                 }
-            }
-            catch
-            {
-                await RollbackTransactionAsync();
-                throw;
-            }
-            finally
-            {
-                if (_currentTransaction != null)
+                catch
                 {
-                    await _currentTransaction.DisposeAsync();
-                    _currentTransaction = null;
+                    await transaction.RollbackAsync();
+                    throw;
                 }
-            }
-        }
-
-        public async Task RollbackTransactionAsync()
-        {
-            if (_currentTransaction != null)
-            {
-                await _currentTransaction.RollbackAsync();
-                await _currentTransaction.DisposeAsync();
-                _currentTransaction = null;
-            }
-        }
-
-        public async Task SaveChangesAsync()
-        {
-            await _context.SaveChangesAsync();
+            });
         }
 
         public void Dispose()
         {
             _context.Dispose();
-            _currentTransaction?.Dispose();
             GC.SuppressFinalize(this);
         }
     }

@@ -33,52 +33,60 @@ namespace Application.Services
 
         public async Task<int> AddReviewAsync(int userId, CreateReviewRequest request)
         {
-            // 1. Verify Purchase
-            // FIXED: AnyAsnc -> AnyAsync
-            var canReview = await _orderRepository.AnyAsync(o =>
-                o.UserId == userId &&
-                o.Status == OrderStatus.Delivered &&
-                o.OrderItems.Any(oi => oi.ProductId == request.ProductId));
+            int reviewId = 0;
 
-            if (!canReview)
-                throw new Exception("Tactical Error: You must receive the item before submitting intel (reviews).");
-
-            var review = new Review
+            await _unitOfWork.ExecuteAsync(async () =>
             {
-                UserId = userId,
-                ProductId = request.ProductId,
-                Rating = request.Rating,
-                Comment = request.Comment,
-                ReviewImages = new List<ReviewImage>()
-            };
+                // 1. Verify Purchase
+                var canReview = await _orderRepository.AnyAsync(o =>
+                    o.UserId == userId &&
+                    o.Status == OrderStatus.Delivered &&
+                    o.OrderItems.Any(oi => oi.ProductId == request.ProductId));
 
-            // 2. Process Image Uploads
-            if (request.ReviewImages != null && request.ReviewImages.Count > 0)
-            {
-                string uploadFolder = Path.Combine(_env.WebRootPath, "uploads", "reviews");
-                if (!Directory.Exists(uploadFolder))
+                if (!canReview)
+                    throw new Exception("Tactical Error: You must receive the item before submitting intel (reviews).");
+
+                var review = new Review
                 {
-                    Directory.CreateDirectory(uploadFolder);
-                }
+                    UserId = userId,
+                    ProductId = request.ProductId,
+                    Rating = request.Rating,
+                    Comment = request.Comment,
+                    ReviewImages = new List<ReviewImage>()
+                };
 
-                foreach (var file in request.ReviewImages)
+                // 2. Process Image Uploads
+                if (request.ReviewImages != null && request.ReviewImages.Count > 0)
                 {
-                    string fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
-                    string filePath = Path.Combine(uploadFolder, fileName);
-
-                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    string uploadFolder = Path.Combine(_env.WebRootPath, "uploads", "reviews");
+                    if (!Directory.Exists(uploadFolder))
                     {
-                        await file.CopyToAsync(stream);
+                        Directory.CreateDirectory(uploadFolder);
                     }
 
-                    review.ReviewImages.Add(new ReviewImage { Url = "/uploads/reviews/" + fileName });
-                }
-            }
+                    foreach (var file in request.ReviewImages)
+                    {
+                        string fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+                        string filePath = Path.Combine(uploadFolder, fileName);
 
-            await _reviewRepository.AddAsync(review);
-            await _unitOfWork.SaveChangesAsync();
-            return review.Id;
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await file.CopyToAsync(stream);
+                        }
+
+                        review.ReviewImages.Add(
+                            new ReviewImage { Url = "/uploads/reviews/" + fileName }
+                        );
+                    }
+                }
+
+                await _reviewRepository.AddAsync(review);
+                reviewId = review.Id;
+            });
+
+            return reviewId;
         }
+
 
         // FIX FOR CS0535: Implementing GetProductReviewsAsync
         public async Task<List<ReviewResponse>> GetProductReviewsAsync(int productId)
@@ -88,7 +96,7 @@ namespace Application.Services
             return reviews.Select(r => new ReviewResponse
             {
                 Id = r.Id,
-                UserName = r.User?.FullName ?? "Unknown Operator", // Assuming User entity has FullName
+                UserName = r.User?.FullName ?? "Unknown Operator", 
                 Rating = r.Rating,
                 Comment = r.Comment,
                 CreatedAt = r.CreatedAt,
@@ -99,16 +107,25 @@ namespace Application.Services
         // FIX FOR CS0535: Implementing DeleteReviewAsync
         public async Task<bool> DeleteReviewAsync(int reviewId, int userId)
         {
-            var review = await _reviewRepository.GetByIdAsync(reviewId);
+            bool deleted = false;
 
-            // Security Check: Only the owner can delete their review
-            if (review == null || review.UserId != userId)
+            await _unitOfWork.ExecuteAsync(async () =>
             {
-                return false;
-            }
+                var review = await _reviewRepository.GetByIdAsync(reviewId);
 
-            await _unitOfWork.SaveChangesAsync();
-            return true;
+               
+                if (review == null || review.UserId != userId)
+                {
+                    deleted = false;
+                    return;
+                }
+
+                deleted = true;
+               
+            });
+
+            return deleted;
         }
+
     }
 }

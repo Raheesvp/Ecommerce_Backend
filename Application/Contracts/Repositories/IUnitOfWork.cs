@@ -13,10 +13,12 @@ namespace Application.Contracts.Repositories
         IProductRepository Products { get; }
 
         IUserRepository Users { get; }
-        Task SaveChangesAsync();
-        Task BeginTransactionAsync();
-        Task CommitTransactionAsync();
-        Task RollbackTransactionAsync();
+        //Task SaveChangesAsync();
+        //Task BeginTransactionAsync();
+        //Task CommitTransactionAsync();
+        //Task RollbackTransactionAsync();
+
+        Task ExecuteAsync(Func<Task> action);
 
 
     }
