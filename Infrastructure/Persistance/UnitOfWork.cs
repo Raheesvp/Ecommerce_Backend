@@ -2,6 +2,8 @@
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using System.Transactions;
+using System.Data;
 
 namespace Infrastructure.Persistance
 {
@@ -25,7 +27,7 @@ namespace Infrastructure.Persistance
             Users = userRepository;
         }
 
-        public async Task ExecuteAsync(Func<Task> action)
+        public async Task ExecuteAsync(Func<Task> operation)
         {
             var strategy = _context.Database.CreateExecutionStrategy();
 
@@ -36,7 +38,7 @@ namespace Infrastructure.Persistance
 
                 try
                 {
-                    await action();
+                    await operation();
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                 }
@@ -47,6 +49,31 @@ namespace Infrastructure.Persistance
                 }
             });
         }
+        public async Task<T> ExecuteAsync<T>(Func<Task<T>> operation)
+        {
+            var strategy = _context.Database.CreateExecutionStrategy();
+            T result = default!;
+
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var transaction = await _context.Database
+                    .BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted);
+                try
+                {
+                    result = await operation();
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            });
+
+            return result;
+        }
+
 
         public void Dispose()
         {

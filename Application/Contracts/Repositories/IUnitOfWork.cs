@@ -18,7 +18,8 @@ namespace Application.Contracts.Repositories
         //Task CommitTransactionAsync();
         //Task RollbackTransactionAsync();
 
-        Task ExecuteAsync(Func<Task> action);
+        Task ExecuteAsync(Func<Task> operation);
+        Task<T> ExecuteAsync<T>(Func<Task<T>> operation);
 
 
     }
