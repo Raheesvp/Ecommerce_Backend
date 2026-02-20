@@ -39,10 +39,8 @@ jobs:
 
 
       - name: Publish
-        run: dotnet publish Project/Project.WebAPI.csproj \
-         -c Release \
-         -o publish \
-         --no-restore
+        run: dotnet publish Project/Project.WebAPI.csproj -c Release -o publish --no-restore
+
 
 
       - name: Upload Artifact
