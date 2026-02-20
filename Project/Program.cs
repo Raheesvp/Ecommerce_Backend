@@ -1,4 +1,3 @@
-
 using Application.Contracts.Repositories;
 using Application.Contracts.Services;
 using Application.Services;
@@ -13,31 +12,25 @@ using Infrastructure.Persistence.Repositories;
 using Infrastructure.Persistence.Repository;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Project.WebAPI;
 using System.Security.Claims;
 using System.Text;
-
-
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
-
+// -------------------- Swagger --------------------
 builder.Services.AddEndpointsApiExplorer();
-
 
 builder.Services.AddSwaggerGen(c =>
 {
     c.EnableAnnotations();
-
     c.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "Atleticx-Api",
@@ -66,82 +59,73 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-
+// -------------------- JWT --------------------
 var jwtKey = builder.Configuration["Jwt:Key"];
 if (string.IsNullOrWhiteSpace(jwtKey))
     throw new Exception("JWT:Key is missing in configuration");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
     {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtKey)
-            ),
-            RoleClaimType = ClaimTypes.Role
-        };
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+        RoleClaimType = ClaimTypes.Role
+    };
 
-        options.Events = new JwtBearerEvents
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
         {
-            OnMessageReceived = context =>
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+
+            if (!string.IsNullOrEmpty(accessToken) &&
+                path.StartsWithSegments("/orderHub"))
             {
-                var accessToken = context.Request.Query["access_token"];
-
-                var path = context.HttpContext.Request.Path;
-                if (!string.IsNullOrEmpty(accessToken) &&
-                    path.StartsWithSegments("/orderHub"))
-                {
-                    context.Token = accessToken;
-                }
-
-                return Task.CompletedTask;
+                context.Token = accessToken;
             }
-        };
 
-    });
-
-
-
-
+            return Task.CompletedTask;
+        }
+    };
+});
 
 builder.Services.AddAuthorization();
 
-
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
-);
-
-//connect with frontend 
-
+// -------------------- CORS --------------------
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+        policy.WithOrigins("https://wolfathleticx.duckdns.org")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
+});
+builder.Services.AddHealthChecks();
+// -------------------- Controllers --------------------
+builder.Services.AddControllers()
+.AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(
+        new JsonStringEnumConverter()
+    );
 });
 
 
-//chatbot
 
+// -------------------- Http Client --------------------
 builder.Services.AddHttpClient();
 
-
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        // This line allows C# to convert "Shipped" -> OrderStatus.Shipped
-        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
-    });
-
-// Repositories
+// -------------------- Repositories --------------------
 builder.Services.AddScoped(typeof(IGenericeRepository<>), typeof(GenericeRepository<>));
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -149,8 +133,9 @@ builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
 builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 
-// Services
+// -------------------- Services --------------------
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -159,82 +144,109 @@ builder.Services.AddScoped<IWishlistService, WishlistService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
-//builder.Services.AddScoped<IEmailSender,EmailService>();
-
-builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
-
 builder.Services.AddScoped<IReviewService, ReviewService>();
-
-builder.Services.AddScoped<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, Infrastructure.Services.EmailService>();
-
-
-
+builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IFileService, CloudinaryService>();
+builder.Services.AddScoped<IPdfService, PdfService>();
+builder.Services.AddScoped<IEmailSender, EmailService>();
 
-builder.Services.AddScoped<IFileService,Infrastructure.Services.CloudinaryService>();
-
+// -------------------- SignalR --------------------
 builder.Services.AddSignalR();
 
-builder.Services.AddScoped<INotificationService, NotificationService>();
+// -------------------- PDF Converter --------------------
+builder.Services.AddSingleton(typeof(IConverter),
+    new SynchronizedConverter(new PdfTools()));
 
-builder.Services.AddScoped<IPdfService, PdfService>();
-
-builder.Services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
-
-
-
-
-
+// -------------------- Database --------------------
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sql => sql.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorNumbersToAdd: null
+        )
+    )
 );
 
-
-
-
-
-//// In Program.cs
-//builder.Services.AddMediatR(cfg => {
-//    cfg.RegisterServicesFromAssembly(typeof(Application.Reviews.CreateReviewCommand).Assembly);
-//});
-
-
-var context = new CustomAssemblyLoadContext();
-string dllPath = Path.Combine(Directory.GetCurrentDirectory(), "libwkhtmltox.dll");
-if (File.Exists(dllPath))
+// -------------------- SAFE NATIVE DLL LOADING --------------------
+// IMPORTANT FIX: Load wkhtmltopdf ONLY on Windows
+if (OperatingSystem.IsWindows())
 {
-    context.LoadUnmanagedLibrary(dllPath);
+    var context = new CustomAssemblyLoadContext();
+    string architecture = IntPtr.Size == 8 ? "x64" : "x86";
+
+    string dllPath = Path.Combine(
+        Directory.GetCurrentDirectory(),
+        "runtimes",
+        $"win-{architecture}",
+        "native",
+        "libwkhtmltox.dll"
+    );
+
+    if (File.Exists(dllPath))
+    {
+        context.LoadUnmanagedLibrary(dllPath);
+    }
 }
 
-
-
-
+// -------------------- Build App --------------------
 var app = builder.Build();
+
+//using (var scope = app.Services.CreateScope())
+//{
+//    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+//    await DbInitializer.SeedAsync(context);
+//}
+
+
+
+
+
+
+// -------------------- Swagger Middleware --------------------
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Atleticx-Api v1");
+        c.RoutePrefix = "swagger";
+    });
 }
 
 
-app.UseMiddleware<Middlewares>();
-app.UseHttpsRedirection();
+
+// -------------------- Middleware Pipeline --------------------
+
+var forwardHeadersOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+
+forwardHeadersOptions.KnownNetworks.Clear();
+forwardHeadersOptions.KnownProxies.Clear();
+
+app.UseForwardedHeaders(forwardHeadersOptions);
+
+
+
+app.UseDefaultFiles();
 app.UseStaticFiles();
-
 app.UseRouting();
-
 app.UseCors("AllowFrontend");
-
-
+app.UseMiddleware<Middlewares>();
 app.UseAuthentication();
 app.UseMiddleware<UserBlockMiddleware>();
 app.UseAuthorization();
 
-
-app.UseCors("AllowAll");
+// -------------------- Endpoints --------------------
 app.MapHub<NotificationHub>("/orderHub");
-
 app.MapControllers();
+app.MapGet("/health", () => Results.Ok("Healthy"));
 
+
+// -------------------- Run --------------------
 app.Run();

@@ -168,7 +168,15 @@ namespace Project.WebAPI.Controllers
             return Ok(new ApiResponse<string>(200, "Product Restored to active inventory success"));
         }
 
-       
+        [HttpGet("debug/connection")]
+        public IActionResult DebugConnection([FromServices] IConfiguration config)
+        {
+            var cs = config.GetConnectionString("DefaultConnection");
+            return Ok(new { connectionString = cs });
+        }
+
+
+
 
 
 

@@ -9,7 +9,7 @@ namespace Infrastructure.Migrations
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
-        {
+        { 
 
         }
 

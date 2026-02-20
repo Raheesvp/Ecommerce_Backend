@@ -2,6 +2,7 @@
 using Domain.Enums;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Mscc.GenerativeAI.Types;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,8 +16,8 @@ namespace Infrastructure.Persistance
         public static async Task SeedAsync(AppDbContext context)
         {
             // Settings
-            const string adminEmail = "rahees12@gmail.com";
-            const string adminPassword = "rahees123";
+            const string adminEmail = "admin123@gmail.com";
+            const string adminPassword = "Admin@555";
 
             // 1. Check if Admin exists (Ignore Filter to find deleted ones)
             var existingAdmin = await context.Users
@@ -57,6 +58,19 @@ namespace Infrastructure.Persistance
                 context.Users.Update(existingAdmin);
                 await context.SaveChangesAsync();
                 Console.WriteLine("--- SEEDING: Restored deleted System Admin ---");
+            }
+            else
+            {
+                existingAdmin.PasswordHash =
+                    BCrypt.Net.BCrypt.HashPassword(adminPassword);
+
+                existingAdmin.IsDeleted = false;
+                existingAdmin.IsBlocked = false;
+
+                context.Users.Update(existingAdmin);
+                await context.SaveChangesAsync();
+
+                Console.WriteLine("--- SEEDING: Admin password reset ---");
             }
         }
     }
