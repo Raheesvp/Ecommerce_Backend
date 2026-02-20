@@ -200,6 +200,23 @@ var app = builder.Build();
 //    await DbInitializer.SeedAsync(context);
 //}
 
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var exception = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+        if (exception != null)
+        {
+            // This prints the FULL stack trace to console
+            Console.WriteLine("=== FULL ERROR ===");
+            Console.WriteLine(exception.Error.Message);
+            Console.WriteLine(exception.Error.StackTrace);
+            Console.WriteLine(exception.Error.InnerException?.Message);
+            Console.WriteLine(exception.Error.InnerException?.StackTrace);
+            Console.WriteLine("==================");
+        }
+    });
+});
 
 
 
@@ -248,24 +265,7 @@ app.MapControllers();
 app.MapGet("/api/health", () => Results.Ok("Healthy"));
 
 
-// Program.cs — add this before app.Run()
-app.UseExceptionHandler(errorApp =>
-{
-    errorApp.Run(async context =>
-    {
-        var exception = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
-        if (exception != null)
-        {
-            // This prints the FULL stack trace to console
-            Console.WriteLine("=== FULL ERROR ===");
-            Console.WriteLine(exception.Error.Message);
-            Console.WriteLine(exception.Error.StackTrace);
-            Console.WriteLine(exception.Error.InnerException?.Message);
-            Console.WriteLine(exception.Error.InnerException?.StackTrace);
-            Console.WriteLine("==================");
-        }
-    });
-});
+
 
 // -------------------- Run --------------------
 app.Run();
