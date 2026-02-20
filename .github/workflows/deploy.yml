@@ -23,13 +23,13 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore Project/Project.sln
+        run: dotnet restore Project.sln
 
       - name: Build
-        run: dotnet build Project/Project.sln -c Release --no-restore
+        run: dotnet build Project.sln -c Release --no-restore
 
       - name: Run Tests
-        run: dotnet test Project/Project.sln -c Release --no-build
+        run: dotnet test Project.sln -c Release --no-build
 
       - name: Publish
         run: dotnet publish Project/Project.WebAPI/Project.WebAPI.csproj -c Release -o publish
