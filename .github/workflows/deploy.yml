@@ -40,7 +40,7 @@ jobs:
           ls -R
 
       - name: Publish
-        run: dotnet publish Project/Project.WebAPI.csproj -c Release -o publish -r linux-x64 --self-contained false
+        run: dotnet publish Project/Project.WebAPI.csproj -c Release -o publish 
 
 
       - name: Upload Artifact
