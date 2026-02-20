@@ -1,0 +1,79 @@
+name: CI/CD - Ecommerce API
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+jobs:
+  ci:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore Project.sln
+
+      - name: Build
+        run: dotnet build Project.sln -c Release --no-restore
+
+      - name: Run Tests
+        run: dotnet test Project.sln -c Release --no-build
+
+      - name: FORCE DEBUG – SHOW REPO STRUCTURE
+        run: |
+          pwd
+          echo "===== FULL TREE ====="
+          ls -R
+
+
+      - name: Publish
+        run: dotnet publish Project/Project.WebAPI.csproj -c Release -o publish
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecommerce-api
+          path: publish
+
+  cd:
+    name: Deploy to EC2
+    needs: ci
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ecommerce-api
+          path: publish
+
+      - name: Copy files to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "publish/*"
+          target: "/var/www/ecommerce-api"
+
+      - name: Restart API Service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            sudo systemctl restart ecommerce-api.service
