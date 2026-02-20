@@ -23,9 +23,11 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore Project.sln
+        # FIX: Removed -r from solution restore
+        run: dotnet restore Project.sln 
 
       - name: Build
+        # FIX: Removed -r from solution build
         run: dotnet build Project.sln -c Release --no-restore
 
       - name: Run Tests
@@ -37,9 +39,9 @@ jobs:
           echo "===== FULL TREE ====="
           ls -R
 
-
       - name: Publish
-        run: dotnet publish Project/Project.WebAPI.csproj -c Release -o publish
+        run: dotnet publish Project/Project.WebAPI.csproj -c Release -o publish 
+
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
