@@ -39,7 +39,7 @@ jobs:
 
 
       - name: Publish
-        run: dotnet publish Project/Project.WebAPI/Project.WebAPI.csproj -c Release -o publish
+        run: dotnet publish Project/Project.WebAPI.csproj -c Release -o publish
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
