@@ -40,19 +40,19 @@ namespace Infrastructure.Persistance.Repository
         public async Task<CategoryEntity> AddAsync(CategoryEntity category)
         {
             await _context.CategoryEntities.AddAsync(category);
-            await _context.SaveChangesAsync();
+            //await _context.SaveChangesAsync();
             return category;
         }
 
         public async Task UpdateAsync(CategoryEntity category)
         {
             _context.Entry(category).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+            //await _context.SaveChangesAsync();
         }
         public async Task DeleteAsync(CategoryEntity category)
         {
             _context.CategoryEntities.Remove(category);
-            await _context.SaveChangesAsync();
+            //await _context.SaveChangesAsync();
         }
 
     }

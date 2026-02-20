@@ -2,8 +2,6 @@
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using System.Transactions;
-using System.Data;
 
 namespace Infrastructure.Persistance
 {

@@ -24,7 +24,7 @@ namespace Infrastructure.Persistance.Repository
         public async Task<Order> CreateAsync(Order order)
         {
             await _context.Orders.AddAsync(order);
-            await _context.SaveChangesAsync();
+            //await _context.SaveChangesAsync();
             return order;
         }
         //get the orders and write the implementatition of interface
@@ -74,7 +74,7 @@ namespace Infrastructure.Persistance.Repository
         public async Task<int> AddReturnRequestAsync(ReturnRequest returnRequest)
         {
             await _context.ReturnRequests.AddAsync(returnRequest);
-            await _context.SaveChangesAsync();
+            //await _context.SaveChangesAsync();
             return returnRequest.Id;
         }
 

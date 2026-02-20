@@ -70,7 +70,7 @@ namespace Infrastructure.Persistance.Repository
                 return;
             }
             _context.Wishlists.RemoveRange(items);
-            await _context.SaveChangesAsync();
+            //await _context.SaveChangesAsync();
         }
 
 

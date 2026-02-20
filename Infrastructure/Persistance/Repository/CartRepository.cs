@@ -32,19 +32,19 @@ namespace Infrastructure.Persistence.Repositories
         public async Task AddItemAsync(CartEntity cart)
         {
             await _context.Carts.AddAsync(cart);
-            await _context.SaveChangesAsync();
+            //await _context.SaveChangesAsync();
         }
 
         public async Task UpdateItemAsync(CartEntity cart)
         {
             _context.Carts.Update(cart);
-            await _context.SaveChangesAsync();
+            //await _context.SaveChangesAsync();
         }
 
         public async Task RemoveItemAsync(CartEntity cart)
         {
             _context.Carts.Remove(cart);
-            await _context.SaveChangesAsync();
+            //await _context.SaveChangesAsync();
         }
 
         public async Task ClearCartAsync(int userId)
@@ -53,7 +53,7 @@ namespace Infrastructure.Persistence.Repositories
             if (items.Any())
             {
                 _context.Carts.RemoveRange(items);
-                await _context.SaveChangesAsync();
+                //await _context.SaveChangesAsync();
             }
         }
     }
