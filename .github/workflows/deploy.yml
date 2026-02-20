@@ -23,10 +23,12 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore Project.sln
+        # Added -r linux-x64 to fix the NETSDK1047 error
+        run: dotnet restore Project.sln -r linux-x64
 
       - name: Build
-        run: dotnet build Project.sln -c Release --no-restore
+        # Added -r linux-x64 to ensure sub-projects build for Linux
+        run: dotnet build Project.sln -c Release -r linux-x64 --no-restore
 
       - name: Run Tests
         run: dotnet test Project.sln -c Release --no-build
@@ -37,11 +39,9 @@ jobs:
           echo "===== FULL TREE ====="
           ls -R
 
-
       - name: Publish
-        run: dotnet publish Project/Project.WebAPI.csproj -c Release -o publish --no-restore
-
-
+        # Added -r linux-x64 and target path fix
+        run: dotnet publish Project/Project.WebAPI.csproj -c Release -o publish -r linux-x64 --no-restore --self-contained false
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -78,4 +78,6 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
+            # Clean up old mixed files before restarting
+            sudo systemctl stop ecommerce-api.service
             sudo systemctl restart ecommerce-api.service
