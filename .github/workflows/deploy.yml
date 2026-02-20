@@ -31,6 +31,14 @@ jobs:
       - name: Run Tests
         run: dotnet test Project.sln -c Release --no-build
 
+        - name: Debug repository structure
+        run: |
+    echo "=== ROOT ==="
+    ls
+    echo "=== RECURSIVE ==="
+    find . -name "*.csproj"
+
+
       - name: Publish
         run: dotnet publish Project/Project.WebAPI/Project.WebAPI.csproj -c Release -o publish
 
