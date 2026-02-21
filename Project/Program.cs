@@ -104,10 +104,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("https://wolfathleticx.duckdns.org")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        policy.WithOrigins(
+         "http://localhost:5173",
+         "https://wolfathleticx.vercel.app",
+         "https://wolfathleticx.duckdns.org"
+     )
+               .AllowAnyHeader()
+              .AllowAnyMethod();
+              //.AllowCredentials();
     });
 });
 builder.Services.AddHealthChecks();
@@ -254,10 +258,10 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseCors("AllowFrontend");
-app.UseMiddleware<Middlewares>();
 app.UseAuthentication();
-app.UseMiddleware<UserBlockMiddleware>();
 app.UseAuthorization();
+app.UseMiddleware<UserBlockMiddleware>();
+app.UseMiddleware<Middlewares>();
 
 // -------------------- Endpoints --------------------
 app.MapHub<NotificationHub>("/orderHub");

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore.Storage;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,6 +18,8 @@ namespace Application.Contracts.Repositories
         //Task BeginTransactionAsync();
         //Task CommitTransactionAsync();
         //Task RollbackTransactionAsync();
+
+        IExecutionStrategy CreateExecutionStrategy();
 
         Task ExecuteAsync(Func<Task> operation);
         Task<T> ExecuteAsync<T>(Func<Task<T>> operation);
